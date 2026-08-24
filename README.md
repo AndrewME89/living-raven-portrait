@@ -1,1 +1,68 @@
-# living-raven-portrait
+# Haunted Raven Portrait
+
+A deliberately quiet, full-screen living portrait for Amazon Fire TV/Silk. The raven spends almost all of its time still; independent random schedulers occasionally play one supplied animation and then return to the hero frame.
+
+## Quick start
+
+This repository contains the application but not the licensed artwork, video, or audio. Add the assets listed below first.
+
+```bash
+python3 -m http.server 8080
+```
+
+Open `http://localhost:8080`. Do not open `index.html` directly: serving over HTTP gives browsers more reliable media behavior. Select **Awaken portrait** once after loading to permit clip audio under browser autoplay policies. The portrait continues silently if this is not selected.
+
+## Assets
+
+Create these folders and preserve the names (including the en dash `–`):
+
+```text
+assets/backgrounds/hero.png
+assets/backgrounds/cemetery-background.png
+assets/video/Raven Animation – Blink.mp4
+assets/video/Raven Animation – Double Blink.mp4
+assets/video/Raven Animation – Flight Away.mp4
+assets/video/Raven Animation – Flight Return.mp4
+assets/video/Raven Animation – Lightning.mp4
+assets/video/Raven Animation – Look Left.mp4
+assets/video/Raven Animation – Look Viewer.mp4
+assets/video/Raven Animation – Preen.mp4
+assets/video/Raven Animation – Ruffle.mp4
+assets/video/Raven Animation – Small Feather Settle.mp4
+assets/video/Raven Animation – Wing Stretch.mp4
+```
+
+All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. A top-left patch sampled from the hero is enabled by `watermarkMask`; disable it when source assets are clean.
+
+## Configuration
+
+Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm. Setting `debug: true` exposes an on-screen control panel; with debug disabled no debug markup is visible. Number keys 1–9 also trigger common actions in debug mode.
+
+The public integration seam is `window.HauntedPortrait`:
+
+```js
+HauntedPortrait.setState('IDLE'); // ACTIVE, IDLE, SLEEP, or AWAY
+HauntedPortrait.trigger('settle');
+```
+
+State changes also emit a `portraitstatechange` browser event. Version 1 does not connect to weather, occupancy, Home Assistant, or a backend.
+
+## Fire TV / Amazon Silk
+
+1. Serve the folder from any static HTTPS host or a computer on the same network for testing.
+2. In Silk, open the URL, select **Awaken portrait**, then use Silk's full-screen option.
+3. In Fire TV **Preferences**, choose screen-saver and sleep settings appropriate for a continuously powered display. Menu names vary by Fire OS release.
+4. Disable Silk data-saving modes if they interfere with local media. Test HDMI audio at the deliberately low default volume.
+5. For unattended use, configure the display's own sleep schedule and periodically confirm Silk remains foregrounded.
+
+Silk may suspend a background tab or reclaim it under memory pressure, and Fire OS may show its screen saver despite page activity. Browser JavaScript cannot override those operating-system policies. If kiosk reliability is inadequate, these same static files can be wrapped in a Fire TV WebView application without redesigning the portrait.
+
+## Reliability and display safety
+
+Timers schedule only their next event and CSS handles atmosphere and 1–3 pixel burn-in drift. Missing clips fail back to the still rather than stopping later schedules. Video is loaded on demand and released after playback. Set `burnInProtection: false` to disable drift; hardware sleep/away scheduling remains recommended because subtle movement cannot guarantee burn-in prevention.
+
+## Debugging and asset replacement
+
+Set `debug: true`, reload, and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
+
+Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
