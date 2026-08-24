@@ -21,8 +21,6 @@ body { background: #050707; }
 .sound-gate:focus, .sound-gate:hover { opacity: .9; }
 .sound-gate.is-hidden { opacity: 0; pointer-events: none; }
 .debug-panel { position: fixed; z-index: 30; top: 1rem; right: 1rem; width: min(360px, calc(100% - 2rem)); padding: 1rem; color: #d1d8d3; background: rgba(5,8,7,.9); border: 1px solid #59645e; box-shadow: 0 10px 40px #000; font-family: system-ui, sans-serif; }
-.debug-panel[hidden] { display: none !important; }
-.debug-enabled::after { content: 'DEBUG'; position: fixed; z-index: 29; left: 1rem; bottom: 1rem; padding: .35rem .5rem; color: #aab7b0; background: rgba(5,8,7,.72); border: 1px solid rgba(170,183,176,.3); font: 10px/1 system-ui, sans-serif; letter-spacing: .14em; pointer-events: none; }
 .debug-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; text-transform: uppercase; letter-spacing: .12em; font-size: .75rem; }
 .debug-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; }
 .debug-panel button { padding: .5rem; color: inherit; background: #17201d; border: 1px solid #3c4944; }

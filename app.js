@@ -34,15 +34,6 @@
   var busy = false;
   var ravenAway = false;
   var soundUnlocked = false;
-  var debugBuilt = false;
-
-  function debugRequested() {
-    var queryDebug = /(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(window.location.search);
-    var savedDebug = false;
-    try { savedDebug = window.localStorage.getItem('hauntedPortraitDebug') === 'true'; }
-    catch (error) { savedDebug = false; }
-    return CONFIG.debug || queryDebug || savedDebug;
-  }
 
   function between(min, max) { return min + Math.random() * (max - min); }
   function announce(message) { status.textContent = message; }
@@ -127,9 +118,7 @@
   }
 
   function buildDebugPanel() {
-    if (debugBuilt) return;
-    debugBuilt = true;
-    portrait.classList.add('debug-enabled');
+    if (!CONFIG.debug) return;
     panel.hidden = false;
     var labels = ['blink', 'doubleBlink', 'ruffle', 'settle', 'preen', 'wingStretch', 'lookLeft', 'lookViewer', 'flight', 'lightning'];
     var container = document.getElementById('debugButtons');
@@ -146,19 +135,6 @@
     });
   }
 
-  function toggleDebugPanel() {
-    if (!debugBuilt) {
-      buildDebugPanel();
-      try { window.localStorage.setItem('hauntedPortraitDebug', 'true'); }
-      catch (error) { /* Private browsing can deny storage; the panel still works. */ }
-      return;
-    }
-    var willShow = panel.hidden;
-    panel.hidden = !willShow;
-    try { window.localStorage.setItem('hauntedPortraitDebug', willShow ? 'true' : 'false'); }
-    catch (error) { /* Private browsing can deny storage; the panel still works. */ }
-  }
-
   function unlockSound() {
     soundUnlocked = true;
     video.muted = false;
@@ -169,12 +145,11 @@
   gate.addEventListener('click', unlockSound);
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') unlockSound();
-    if (event.key === 'd' || event.key === 'D') toggleDebugPanel();
-    if (debugBuilt && !panel.hidden && event.key >= '1' && event.key <= '9') trigger(['blink','doubleBlink','ruffle','settle','preen','wingStretch','lookLeft','lookViewer','flight'][Number(event.key) - 1]);
+    if (CONFIG.debug && event.key >= '1' && event.key <= '9') trigger(['blink','doubleBlink','ruffle','settle','preen','wingStretch','lookLeft','lookViewer','flight'][Number(event.key) - 1]);
   });
   if (!CONFIG.watermarkMask) portrait.classList.add('mask-disabled');
   if (CONFIG.burnInProtection) scene.classList.add('scene--drift');
-  if (debugRequested()) buildDebugPanel();
+  buildDebugPanel();
   SCHEDULES.forEach(schedule);
   setPortraitState('ACTIVE');
 

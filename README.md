@@ -36,17 +36,7 @@ All stills and clips should share the same framing and aspect ratio so the first
 
 ## Configuration
 
-Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
-
-### Opening the debug controls
-
-Use any of these methods, then reload if applicable:
-
-1. Open the portrait with `?debug=1` appended, for example `http://localhost:8080/?debug=1`. This is the quickest and most reliable method because it does not depend on an edited file being fresh in Silk's cache.
-2. Press **D** on a connected keyboard to show or hide the panel at any time. This choice is remembered when browser storage is available.
-3. Set `debug: true` in `config.js` and fully reload the page. In Silk, close/reopen the tab or clear its cached site data if an old configuration persists.
-
-A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
+Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm. Setting `debug: true` exposes an on-screen control panel; with debug disabled no debug markup is visible. Number keys 1–9 also trigger common actions in debug mode.
 
 The public integration seam is `window.HauntedPortrait`:
 
@@ -73,6 +63,6 @@ Timers schedule only their next event and CSS handles atmosphere and 1–3 pixel
 
 ## Debugging and asset replacement
 
-Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
+Set `debug: true`, reload, and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
 
 Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
