@@ -1,23 +1,5 @@
 /* The only file most installations need to edit. Times are deliberately broad. */
 var CONFIG = Object.freeze({
-  /* Bump this value whenever replacing an asset without changing its filename. */
-  assetVersion: '2026-08-25-1',
-  heroImage: 'assets/backgrounds/hero.png',
-  cemeteryImage: 'assets/backgrounds/cemetery-background.png',
-  videoRoot: 'assets/video/',
-  videoFiles: Object.freeze({
-    blink: 'Raven Animation – Blink.mp4',
-    doubleBlink: 'Raven Animation – Double Blink.mp4',
-    flightAway: 'Raven Animation – Flight Away.mp4',
-    flightReturn: 'Raven Animation – Flight Return.mp4',
-    lightning: 'Raven Animation – Lightning.mp4',
-    lookLeft: 'Raven Animation – Look Left.mp4',
-    lookViewer: 'Raven Animation – Look Viewer.mp4',
-    preen: 'Raven Animation – Preen.mp4',
-    ruffle: 'Raven Animation – Ruffle.mp4',
-    settle: 'Raven Animation – Small Feather Settle.mp4',
-    wingStretch: 'Raven Animation – Wing Stretch.mp4'
-  }),
   blinkMinSeconds: 20,
   blinkMaxSeconds: 120,
   doubleBlinkChance: 0.12,
@@ -40,5 +22,5 @@ var CONFIG = Object.freeze({
   videoVolume: 0.22,
   burnInProtection: true,
   watermarkMask: true,
-  debug: false
+  debug: true
 });
