@@ -14,60 +14,29 @@ Open `http://localhost:8080`. Do not open `index.html` directly: serving over HT
 
 ## Assets
 
-Create these folders using the names below. The player first tries the en dash `–` names from the supplied asset specification, then automatically retries common ASCII-hyphen and em-dash variants:
+Create these folders and preserve the names (including the en dash `–`):
 
 ```text
 assets/backgrounds/hero.png
 assets/backgrounds/cemetery-background.png
-assets/video/Raven Movement – Blink.mp4
-assets/video/Raven Movement – Double Blink.mp4
-assets/video/Raven Movement – Flight Away.mp4
-assets/video/Raven Movement – Flight Return.mp4
-assets/video/Raven Movement – Lightning.mp4
-assets/video/Raven Movement – Mausoleum.mp4
-assets/video/Raven Movement – Look Left.mp4
-assets/video/Raven Movement – Look Viewer.mp4
-assets/video/Raven Movement – Preen.mp4
-assets/video/Raven Movement – Ruffle.mp4
-assets/video/Raven Movement – Small Feather Settle.mp4
-assets/video/Raven Movement – Wing Stretch.mp4
+assets/video/Raven Animation – Blink.mp4
+assets/video/Raven Animation – Double Blink.mp4
+assets/video/Raven Animation – Flight Away.mp4
+assets/video/Raven Animation – Flight Return.mp4
+assets/video/Raven Animation – Lightning.mp4
+assets/video/Raven Animation – Look Left.mp4
+assets/video/Raven Animation – Look Viewer.mp4
+assets/video/Raven Animation – Preen.mp4
+assets/video/Raven Animation – Ruffle.mp4
+assets/video/Raven Animation – Small Feather Settle.mp4
+assets/video/Raven Animation – Wing Stretch.mp4
 ```
 
-All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. The raven gesture clips have a flat black background rather than transparency. During playback a small WebGL shader removes that black background and composites the moving raven over `hero.png`; full-scene Lightning remains a normal opaque video. If WebGL is unavailable, the player deliberately falls back to the unkeyed video so movement remains testable rather than silently showing the still.
-
-Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. The shader also removes the top-left 7% watermark corner from gesture clips, revealing the matching hero artwork beneath. The separate opaque-video corner patch is controlled by `watermarkMask`; disable it when source assets are clean.
-
-Lightning and Mausoleum are opaque environment clips rather than black-keyed gestures. CSS restores Lightning's missing illumination with an irregular multi-flash overlay. Mausoleum gets a warm window light that ignites, flickers, and extinguishes; adjust its percentage bounds with `mausoleumWindow` in `config.js` rather than editing CSS. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
-
-During keyed raven gestures, `hero.png` fades away to reveal `cemetery-background.png` beneath the moving raven. This prevents the baked-in resting raven from ghosting around slightly differently framed animation footage. If a final clip still needs a tiny registration correction, adjust `gestureAlignment` in `config.js`; it moves/scales only the animation canvas.
-
-If Lightning works but another clip does not, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance.
-
-Silk's support is most reliable with H.264 video (`yuv420p`) and AAC audio in an MP4 container. A clip that loads its first frame but does not advance should be re-encoded with:
-
-```bash
-ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 128k output.mp4
-```
+All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. A top-left patch sampled from the hero is enabled by `watermarkMask`; disable it when source assets are clean.
 
 ## Configuration
 
-Edit the single `CONFIG` object in `config.js`. All replaceable background paths and video filenames live at the top of that object; there are no asset filenames to keep synchronized in the HTML, CSS, or player code. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
-
-### Replacing assets on GitHub Pages
-
-GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any PNG or MP4, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
-
-After deploying, open `https://YOUR-PAGES-URL/?debug=1`, force one affected clip, and confirm its loading message contains the configured filename and new `?v=` value. Asset paths on GitHub Pages are case-sensitive, including the `.mp4` extension. If the old asset remains temporarily, reload after GitHub Pages finishes publishing the commit; changing `assetVersion` handles browser/CDN asset caching but cannot make an unfinished Pages deployment complete sooner.
-
-### Opening the debug controls
-
-Use any of these methods, then reload if applicable:
-
-1. Open the portrait with `?debug=1` appended, for example `http://localhost:8080/?debug=1`. This is the quickest and most reliable method because it does not depend on an edited file being fresh in Silk's cache.
-2. Press **D** on a connected keyboard to show or hide the panel at any time. This choice is remembered when browser storage is available.
-3. Set `debug: true` in `config.js` and fully reload the page. In Silk, close/reopen the tab or clear its cached site data if an old configuration persists.
-
-A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
+Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm. Setting `debug: true` exposes an on-screen control panel; with debug disabled no debug markup is visible. Number keys 1–9 also trigger common actions in debug mode.
 
 The public integration seam is `window.HauntedPortrait`:
 
@@ -94,6 +63,6 @@ Timers schedule only their next event and CSS handles atmosphere and 1–3 pixel
 
 ## Debugging and asset replacement
 
-Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
+Set `debug: true`, reload, and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
 
 Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
