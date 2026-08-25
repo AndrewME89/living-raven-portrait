@@ -1,0 +1,26 @@
+/* The only file most installations need to edit. Times are deliberately broad. */
+var CONFIG = Object.freeze({
+  blinkMinSeconds: 20,
+  blinkMaxSeconds: 120,
+  doubleBlinkChance: 0.12,
+  ruffleMinMinutes: 4,
+  ruffleMaxMinutes: 20,
+  settleMinMinutes: 3,
+  settleMaxMinutes: 14,
+  preenMinMinutes: 15,
+  preenMaxMinutes: 45,
+  wingStretchMinMinutes: 30,
+  wingStretchMaxMinutes: 60,
+  headMoveMinMinutes: 10,
+  headMoveMaxMinutes: 40,
+  flightAwayMinHours: 2,
+  flightAwayMaxHours: 4,
+  flightReturnMinSeconds: 30,
+  flightReturnMaxSeconds: 180,
+  longQuietChance: 0.12,
+  longQuietMultiplier: 1.8,
+  videoVolume: 0.22,
+  burnInProtection: true,
+  watermarkMask: true,
+  debug: false
+});
