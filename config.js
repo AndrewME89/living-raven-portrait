@@ -22,5 +22,5 @@ var CONFIG = Object.freeze({
   videoVolume: 0.22,
   burnInProtection: true,
   watermarkMask: true,
-  debug: false
+  debug: true
 });
