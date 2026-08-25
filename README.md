@@ -14,7 +14,7 @@ Open `http://localhost:8080`. Do not open `index.html` directly: serving over HT
 
 ## Assets
 
-Create these folders using the names below. The player first tries the en dash `–` names from the supplied asset specification, then automatically retries common ASCII-hyphen and em-dash variants:
+Create these folders and preserve the names (including the en dash `–`):
 
 ```text
 assets/backgrounds/hero.png
@@ -34,27 +34,9 @@ assets/video/Raven Animation – Wing Stretch.mp4
 
 All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. A top-left patch sampled from the hero is enabled by `watermarkMask`; disable it when source assets are clean.
 
-If Lightning works but another clip does not, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance. During playback the still image is explicitly hidden and the video is placed above it, so a **Playing** status with no visible motion is not caused by `hero.png` covering the video.
-
-Silk's support is most reliable with H.264 video (`yuv420p`) and AAC audio in an MP4 container. A clip that loads its first frame but does not advance should be re-encoded with:
-
-```bash
-ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 128k output.mp4
-```
-
 ## Configuration
 
-Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
-
-### Opening the debug controls
-
-Use any of these methods, then reload if applicable:
-
-1. Open the portrait with `?debug=1` appended, for example `http://localhost:8080/?debug=1`. This is the quickest and most reliable method because it does not depend on an edited file being fresh in Silk's cache.
-2. Press **D** on a connected keyboard to show or hide the panel at any time. This choice is remembered when browser storage is available.
-3. Set `debug: true` in `config.js` and fully reload the page. In Silk, close/reopen the tab or clear its cached site data if an old configuration persists.
-
-A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
+Edit the single `CONFIG` object in `config.js`. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm. Setting `debug: true` exposes an on-screen control panel; with debug disabled no debug markup is visible. Number keys 1–9 also trigger common actions in debug mode.
 
 The public integration seam is `window.HauntedPortrait`:
 
@@ -81,6 +63,6 @@ Timers schedule only their next event and CSS handles atmosphere and 1–3 pixel
 
 ## Debugging and asset replacement
 
-Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
+Set `debug: true`, reload, and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
 
 Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
