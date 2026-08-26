@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090d0d">
   <title>Haunted Raven Portrait</title>
-  <link rel="stylesheet" href="styles.css?v=2026-08-25-4">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main id="portrait" class="portrait" data-state="ACTIVE" aria-label="A living portrait of a raven in a cemetery">
@@ -14,11 +14,8 @@
       <div class="vignette" aria-hidden="true"></div>
       <div class="mist mist--far" aria-hidden="true"></div>
       <div class="mist mist--near" aria-hidden="true"></div>
-      <img class="raven-still" id="ravenStill" alt="A black raven perched in a Victorian cemetery">
+      <img class="raven-still" id="ravenStill" src="assets/backgrounds/hero.png" alt="A black raven perched in a Victorian cemetery">
       <video class="raven-video" id="ravenVideo" preload="metadata" playsinline></video>
-      <canvas class="raven-video-canvas" id="ravenVideoCanvas" aria-hidden="true"></canvas>
-      <div class="mausoleum-light" aria-hidden="true"></div>
-      <div class="lightning-flash" aria-hidden="true"></div>
       <div class="watermark-mask" aria-hidden="true"></div>
       <div class="grain" aria-hidden="true"></div>
     </div>
@@ -29,7 +26,7 @@
       <p id="debugStatus" aria-live="polite">Resting</p>
     </aside>
   </main>
-  <script src="config.js?v=2026-08-25-4"></script>
-  <script src="app.js?v=2026-08-25-4"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
