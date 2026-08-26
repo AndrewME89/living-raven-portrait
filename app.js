@@ -58,7 +58,7 @@
     var texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
     return {gl:gl,texture:texture,scale:gl.getUniformLocation(p,'scale'),offset:gl.getUniformLocation(p,'offset')};
   }
-  function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),canvas:root.querySelector('canvas'),gl:null,raf:null,name:null,raw:false,onCleanFrame:null}; }
+  function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),canvas:root.querySelector('canvas'),gl:null,raf:null,name:null,raw:false}; }
   var active=makeSlot('videoSlotA'), standby=makeSlot('videoSlotB'); active.gl=makeCompositor(active.canvas);standby.gl=makeCompositor(standby.canvas);
 
   function draw(slot,repeat) {
@@ -70,7 +70,6 @@
     g.gl.viewport(0,0,c.width,c.height);g.gl.clearColor(0,0,0,0);g.gl.clear(g.gl.COLOR_BUFFER_BIT);g.gl.bindTexture(g.gl.TEXTURE_2D,g.texture);
     try{g.gl.texImage2D(g.gl.TEXTURE_2D,0,g.gl.RGBA,g.gl.RGBA,g.gl.UNSIGNED_BYTE,slot.video);}catch(error){slot.raw=true;slot.root.classList.add('is-raw');return;}
     g.gl.uniform2f(g.scale,sx,sy);g.gl.uniform2f(g.offset,ox,oy);g.gl.drawArrays(g.gl.TRIANGLE_STRIP,0,4);
-    if(slot.name==='flightAway'&&slot.onCleanFrame&&slot.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds){slot.onCleanFrame();return;}
     if(repeat&&!slot.video.paused&&!slot.video.ended)slot.raf=requestAnimationFrame(function(){draw(slot,true);});
   }
   function waitEvent(target,event) { return new Promise(function(resolve,reject){var timeout=setTimeout(function(){cleanup();reject(new Error('Timed out waiting for '+event));},12000);function done(){cleanup();resolve();}function fail(){cleanup();reject(new Error('Media failed'));}function cleanup(){clearTimeout(timeout);target.removeEventListener(event,done);target.removeEventListener('error',fail);}target.addEventListener(event,done);target.addEventListener('error',fail);}); }
@@ -88,7 +87,7 @@
     active.root.classList.remove('is-active');standby.root.classList.add('is-active');
     var old=active;active=standby;standby=old;portrait.classList.add('video-idle');still.classList.add('is-video-ready');
   }
-  function resetSlot(slot) { if(slot.raf)cancelAnimationFrame(slot.raf);slot.raf=null;slot.onCleanFrame=null;slot.root.classList.remove('is-active','is-raw');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
+  function resetSlot(slot) { if(slot.raf)cancelAnimationFrame(slot.raf);slot.raf=null;slot.root.classList.remove('is-active','is-raw');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
@@ -96,34 +95,8 @@
   function environmentStart(name){portrait.classList.add(name+'-playing');scene.style.setProperty('--environment-duration',(active.video.duration||4)+'s');if(!soundUnlocked)return;if(name==='mausoleum'&&CONFIG.mausoleumSound){eventAudio=new Audio(assetUrl(CONFIG.mausoleumSound));eventAudio.volume=CONFIG.videoVolume;eventAudio.play().catch(function(){});}if(name==='lightning'){eventTimer=setTimeout(function(){if(CONFIG.lightningSound){eventAudio=new Audio(assetUrl(CONFIG.lightningSound));eventAudio.volume=CONFIG.lightningThunderVolume;eventAudio.play().catch(function(){});}else thunder();},active.video.duration*CONFIG.lightningThunderDelayRatio*1000);}}
   function environmentStop(name){portrait.classList.remove(name+'-playing');if(eventTimer)clearTimeout(eventTimer);eventTimer=null;if(eventAudio){eventAudio.pause();eventAudio=null;}}
 
-  function enterAwayState(){away=true;portrait.classList.add('raven-away');}
-  function leaveAwayState(){away=false;portrait.classList.remove('raven-away');}
   function playActive() {
-    return new Promise(function(resolve,reject){
-      var slot=active,name=slot.name,finished=false;
-      busy=true;
-      function complete(){
-        if(finished)return;
-        finished=true;slot.video.onended=null;slot.video.ontimeupdate=null;slot.onCleanFrame=null;
-        if(slot.raf)cancelAnimationFrame(slot.raf);
-        environmentStop(name);busy=false;resolve(name);
-      }
-      function holdCleanAwayFrame(){
-        if(finished)return;
-        enterAwayState();
-        slot.video.pause();
-        complete();
-      }
-      slot.video.onended=complete;
-      slot.onCleanFrame=name==='flightAway'?holdCleanAwayFrame:null;
-      slot.video.ontimeupdate=function(){
-        if(name==='flightAway'&&CONFIG.flightAwayCleanFrameSeconds&&slot.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds)holdCleanAwayFrame();
-      };
-      slot.video.onerror=function(){busy=false;reject(new Error('Playback failed: '+name));};
-      slot.video.muted=slot.raw||!soundUnlocked;
-      if(slot.raw)environmentStart(name);
-      slot.video.play().then(function(){draw(slot,true);announce('Playing '+name);}).catch(reject);
-    });
+    return new Promise(function(resolve,reject){var name=active.name,finished=false;busy=true;function complete(){if(finished)return;finished=true;active.video.onended=null;active.video.ontimeupdate=null;if(active.raf)cancelAnimationFrame(active.raf);environmentStop(name);busy=false;resolve(name);}active.video.onended=complete;active.video.ontimeupdate=function(){if(name==='flightAway'&&CONFIG.flightAwayCleanFrameSeconds&&active.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds){active.video.pause();complete();}};active.video.onerror=function(){busy=false;reject(new Error('Playback failed: '+name));};active.video.muted=active.raw||!soundUnlocked;if(active.raw)environmentStart(name);active.video.play().then(function(){draw(active,true);announce('Playing '+name);}).catch(reject);});
   }
   function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
   function nextPlan(){var item=BEHAVIOURS[0];BEHAVIOURS.forEach(function(value){if(dueTimes[value.name]<dueTimes[item.name])item=value;});return {behaviour:item,name:clipName(item.name),due:dueTimes[item.name]};}
@@ -131,7 +104,7 @@
     if(away)return;var token=++generation,plan=nextPlan();
     primeAndSwap(plan.name).then(function(){if(token!==generation)return;var delay=Math.max(0,plan.due-Date.now());announce('Idle on '+plan.name+' first frame');actionTimer=setTimeout(function(){playActive().then(function(){scheduleDue(plan.behaviour);if(plan.behaviour.name==='flight')runFlightReturn();else runNormalLoop();}).catch(fallback);},delay);}).catch(fallback);
   }
-  function runFlightReturn(){enterAwayState();primeAndSwap('flightReturn').then(function(){var delay=rand(CONFIG.flightReturnMinSeconds,CONFIG.flightReturnMaxSeconds)*1000;announce('Raven away — return in '+Math.round(delay/1000)+'s');actionTimer=setTimeout(function(){playActive().then(function(){leaveAwayState();runNormalLoop();}).catch(fallback);},delay);}).catch(fallback);}
+  function runFlightReturn(){away=true;portrait.classList.add('raven-away');primeAndSwap('flightReturn').then(function(){var delay=rand(CONFIG.flightReturnMinSeconds,CONFIG.flightReturnMaxSeconds)*1000;announce('Raven away — return in '+Math.round(delay/1000)+'s');actionTimer=setTimeout(function(){playActive().then(function(){away=false;portrait.classList.remove('raven-away');runNormalLoop();}).catch(fallback);},delay);}).catch(fallback);}
   function fallback(error){console.error('[Haunted Portrait]',error);busy=false;away=false;portrait.classList.remove('raven-away','video-idle');still.classList.remove('is-video-ready');announce(error.message+' — using hero fallback');setTimeout(runNormalLoop,2000);}
   function force(name){if(name==='flightReturn'||busy)return;clearTimeout(actionTimer);generation++;var chosen=name==='flight'?'flightAway':name;primeAndSwap(chosen).then(function(){return playActive();}).then(function(){if(name==='flight')runFlightReturn();else runNormalLoop();}).catch(fallback);}
 

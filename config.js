@@ -1,7 +1,7 @@
 /* The only file most installations need to edit. Times are deliberately broad. */
 var CONFIG = Object.freeze({
   /* Bump this value whenever replacing an asset without changing its filename. */
-  assetVersion: '2026-08-26-2',
+  assetVersion: '2026-08-26-1',
   heroImage: 'assets/backgrounds/hero.png',
   cemeteryImage: 'assets/backgrounds/cemetery-background.png',
   videoRoot: 'assets/video/',
