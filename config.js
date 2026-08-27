@@ -1,7 +1,7 @@
 /* The only file most installations need to edit. Times are deliberately broad. */
 var CONFIG = Object.freeze({
   /* Bump this value whenever replacing an asset without changing its filename. */
-  assetVersion: '2026-08-27-1',
+  assetVersion: '2026-08-26-1',
   heroImage: 'assets/backgrounds/hero.png',
   cemeteryImage: 'assets/backgrounds/cemetery-background.png',
   videoRoot: 'assets/video/',
@@ -24,6 +24,8 @@ var CONFIG = Object.freeze({
   lightningSound: null,
   lightningThunderDelayRatio: 0.16,
   lightningThunderVolume: 0.16,
+  /* Fine alignment for keyed gesture footage relative to the cemetery. */
+  gestureAlignment: Object.freeze({ scale: 1, xPixels: 0, yPixels: 0 }),
   /* Percentage bounds of the mausoleum window: adjust here, not in CSS. */
   mausoleumWindow: Object.freeze({ left: 61, top: 35, width: 7, height: 12 }),
   blinkMinSeconds: 20,
@@ -49,5 +51,6 @@ var CONFIG = Object.freeze({
   longQuietMultiplier: 1.8,
   videoVolume: 0.22,
   burnInProtection: true,
+  watermarkMask: true,
   debug: false
 });
