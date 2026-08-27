@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090d0d">
   <title>Haunted Raven Portrait</title>
-  <link rel="stylesheet" href="styles.css?v=2026-08-27-2">
+  <link rel="stylesheet" href="styles.css?v=2026-08-26-1">
 </head>
 <body>
   <main id="portrait" class="portrait" data-state="ACTIVE" aria-label="A living portrait of a raven in a cemetery">
@@ -15,10 +15,11 @@
       <div class="mist mist--far" aria-hidden="true"></div>
       <div class="mist mist--near" aria-hidden="true"></div>
       <img class="raven-still" id="ravenStill" alt="A black raven perched in a Victorian cemetery">
-      <div class="video-slot" id="videoSlotA" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video></div>
-      <div class="video-slot" id="videoSlotB" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video></div>
+      <div class="video-slot" id="videoSlotA" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video><canvas class="raven-video-canvas"></canvas></div>
+      <div class="video-slot" id="videoSlotB" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video><canvas class="raven-video-canvas"></canvas></div>
       <div class="mausoleum-light" aria-hidden="true"></div>
       <div class="lightning-flash" aria-hidden="true"></div>
+      <div class="watermark-mask" aria-hidden="true"></div>
       <div class="grain" aria-hidden="true"></div>
     </div>
     <button class="sound-gate" id="soundGate" type="button">Awaken portrait</button>
@@ -28,7 +29,7 @@
       <p id="debugStatus" aria-live="polite">Resting</p>
     </aside>
   </main>
-  <script src="config.js?v=2026-08-27-2"></script>
-  <script src="app.js?v=2026-08-27-2"></script>
+  <script src="config.js?v=2026-08-26-1"></script>
+  <script src="app.js?v=2026-08-26-1"></script>
 </body>
 </html>
