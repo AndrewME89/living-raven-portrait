@@ -1,6 +1,6 @@
 # Haunted Raven Portrait
 
-A deliberately quiet, full-screen living portrait for Amazon Fire TV/Silk. The raven spends almost all of its time still; independent random schedulers occasionally play one supplied animation and then return to the hero frame.
+A deliberately quiet, full-screen living portrait for Amazon Fire TV/Silk. The raven spends almost all of its time paused on the opening frame of its next video; independent random schedulers occasionally play that already-visible clip.
 
 ## Quick start
 
@@ -17,8 +17,6 @@ Open `http://localhost:8080`. Do not open `index.html` directly: serving over HT
 Create these folders using the names below. The player first tries the en dash `–` names from the supplied asset specification, then automatically retries common ASCII-hyphen and em-dash variants:
 
 ```text
-assets/backgrounds/hero.png
-assets/backgrounds/cemetery-background.png
 assets/video/Raven Animation – Blink.mp4
 assets/video/Raven Animation – Double Blink.mp4
 assets/video/Raven Animation – Flight Away.mp4
