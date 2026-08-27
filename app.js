@@ -45,33 +45,10 @@
     ['left','top','width','height'].forEach(function(key){scene.style.setProperty('--mausoleum-'+key,CONFIG.mausoleumWindow[key]+'%');});
   }
 
-  function makeCompositor(canvas) {
-    var gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false})||canvas.getContext('experimental-webgl',{alpha:true,premultipliedAlpha:false});
-    if(!gl)return null;
-    function shader(type,source){var s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);return gl.getShaderParameter(s,gl.COMPILE_STATUS)?s:null;}
-    var vs=shader(gl.VERTEX_SHADER,'attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}');
-    var fs=shader(gl.FRAGMENT_SHADER,'precision mediump float;varying vec2 uv;uniform sampler2D tex;uniform vec2 scale;uniform vec2 offset;void main(){vec2 q=uv*scale+offset;vec4 c=texture2D(tex,q);float a=smoothstep(.001,.008,max(c.r,max(c.g,c.b)));if(q.x<.07&&q.y>.93)a=0.;gl_FragColor=vec4(c.rgb,a);}');
-    if(!vs||!fs)return null;
-    var p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;gl.useProgram(p);
-    var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-    var pos=gl.getAttribLocation(p,'p');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-    var texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
-    return {gl:gl,texture:texture,scale:gl.getUniformLocation(p,'scale'),offset:gl.getUniformLocation(p,'offset')};
-  }
-  function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),canvas:root.querySelector('canvas'),gl:null,raf:null,name:null,raw:false}; }
-  var active=makeSlot('videoSlotA'), standby=makeSlot('videoSlotB'); active.gl=makeCompositor(active.canvas);standby.gl=makeCompositor(standby.canvas);
+  function isEnvironment(name) { return name==='lightning'||name==='mausoleum'; }
+  function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),name:null}; }
+  var active=makeSlot('videoSlotA'), standby=makeSlot('videoSlotB');
 
-  function draw(slot,repeat) {
-    if(slot.raw||!slot.gl||slot.video.readyState<2)return;
-    var c=slot.canvas,g=slot.gl,w=c.clientWidth||scene.clientWidth,h=c.clientHeight||scene.clientHeight,d=Math.min(window.devicePixelRatio||1,1.5);
-    c.width=Math.round(w*d);c.height=Math.round(h*d);
-    var va=slot.video.videoWidth/slot.video.videoHeight,ba=w/h,sx=1,sy=1,ox=0,oy=0;
-    if(va>ba){sx=ba/va;ox=(1-sx)/2;}else{sy=va/ba;oy=(1-sy)/2;}
-    g.gl.viewport(0,0,c.width,c.height);g.gl.clearColor(0,0,0,0);g.gl.clear(g.gl.COLOR_BUFFER_BIT);g.gl.bindTexture(g.gl.TEXTURE_2D,g.texture);
-    try{g.gl.texImage2D(g.gl.TEXTURE_2D,0,g.gl.RGBA,g.gl.RGBA,g.gl.UNSIGNED_BYTE,slot.video);}catch(error){slot.raw=true;slot.root.classList.add('is-raw');return;}
-    g.gl.uniform2f(g.scale,sx,sy);g.gl.uniform2f(g.offset,ox,oy);g.gl.drawArrays(g.gl.TRIANGLE_STRIP,0,4);
-    if(repeat&&!slot.video.paused&&!slot.video.ended)slot.raf=requestAnimationFrame(function(){draw(slot,true);});
-  }
   function waitEvent(target,event) { return new Promise(function(resolve,reject){var timeout=setTimeout(function(){cleanup();reject(new Error('Timed out waiting for '+event));},12000);function done(){cleanup();resolve();}function fail(){cleanup();reject(new Error('Media failed'));}function cleanup(){clearTimeout(timeout);target.removeEventListener(event,done);target.removeEventListener('error',fail);}target.addEventListener(event,done);target.addEventListener('error',fail);}); }
   function loadCandidate(slot,name,index) {
     var names=candidates(CONFIG.videoFiles[name]);if(index>=names.length)return Promise.reject(new Error('No playable file for '+name));
@@ -79,15 +56,15 @@
     return waitEvent(slot.video,'loadeddata').catch(function(){return loadCandidate(slot,name,index+1);});
   }
   function prime(slot,name) {
-    slot.name=name;slot.raw=name==='lightning'||name==='mausoleum'||!slot.gl;slot.root.classList.toggle('is-raw',slot.raw);slot.video.muted=slot.raw||!soundUnlocked;
+    slot.name=name;slot.video.muted=isEnvironment(name)||!soundUnlocked;
     announce('Priming '+name);
-    return loadCandidate(slot,name,0).then(function(){slot.video.currentTime=.001;return waitEvent(slot.video,'seeked');}).then(function(){slot.video.pause();draw(slot,false);announce('Ready: '+name+' — first frame paused');});
+    return loadCandidate(slot,name,0).then(function(){slot.video.currentTime=.001;return waitEvent(slot.video,'seeked');}).then(function(){slot.video.pause();announce('Ready: '+name+' — first frame paused');});
   }
   function swapToStandby() {
     active.root.classList.remove('is-active');standby.root.classList.add('is-active');
     var old=active;active=standby;standby=old;portrait.classList.add('video-idle');still.classList.add('is-video-ready');
   }
-  function resetSlot(slot) { if(slot.raf)cancelAnimationFrame(slot.raf);slot.raf=null;slot.root.classList.remove('is-active','is-raw');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
+  function resetSlot(slot) { slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
@@ -96,7 +73,7 @@
   function environmentStop(name){portrait.classList.remove(name+'-playing');if(eventTimer)clearTimeout(eventTimer);eventTimer=null;if(eventAudio){eventAudio.pause();eventAudio=null;}}
 
   function playActive() {
-    return new Promise(function(resolve,reject){var name=active.name,finished=false;busy=true;function complete(){if(finished)return;finished=true;active.video.onended=null;active.video.ontimeupdate=null;if(active.raf)cancelAnimationFrame(active.raf);environmentStop(name);busy=false;resolve(name);}active.video.onended=complete;active.video.ontimeupdate=function(){if(name==='flightAway'&&CONFIG.flightAwayCleanFrameSeconds&&active.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds){active.video.pause();complete();}};active.video.onerror=function(){busy=false;reject(new Error('Playback failed: '+name));};active.video.muted=active.raw||!soundUnlocked;if(active.raw)environmentStart(name);active.video.play().then(function(){draw(active,true);announce('Playing '+name);}).catch(reject);});
+    return new Promise(function(resolve,reject){var name=active.name,environment=isEnvironment(name),finished=false;busy=true;function complete(){if(finished)return;finished=true;active.video.onended=null;active.video.ontimeupdate=null;environmentStop(name);busy=false;resolve(name);}active.video.onended=complete;active.video.ontimeupdate=function(){if(name==='flightAway'&&CONFIG.flightAwayCleanFrameSeconds&&active.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds){active.video.pause();complete();}};active.video.onerror=function(){busy=false;reject(new Error('Playback failed: '+name));};active.video.muted=environment||!soundUnlocked;if(environment)environmentStart(name);active.video.play().then(function(){announce('Playing '+name);}).catch(reject);});
   }
   function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
   function nextPlan(){var item=BEHAVIOURS[0];BEHAVIOURS.forEach(function(value){if(dueTimes[value.name]<dueTimes[item.name])item=value;});return {behaviour:item,name:clipName(item.name),due:dueTimes[item.name]};}
