@@ -33,21 +33,19 @@ assets/video/Raven Animation – Small Feather Settle.mp4
 assets/video/Raven Animation – Wing Stretch.mp4
 ```
 
-All stills and clips should share the same framing and aspect ratio. Every clip is displayed directly by its video element, with no shader, chroma key, pixel removal, canvas copy, or colour adjustment.
+All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. The raven gesture clips have a flat black background rather than transparency. During playback a small WebGL shader removes that black background and composites the moving raven over `hero.png`; full-scene Lightning remains a normal opaque video. If WebGL is unavailable, the player deliberately falls back to the unkeyed video so movement remains testable rather than silently showing the still.
 
-The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, and always-on grain/vignette layers. Those effects can force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, producing block-shaped corruption even when the source file is intact. Slots switch with `visibility` instead, and the Lightning/Mausoleum blend layers do not enter the compositor until their matching event plays.
-
-Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps.
+Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. The shader also removes the top-left 7% watermark corner from gesture clips, revealing the matching hero artwork beneath. The separate opaque-video corner patch is controlled by `watermarkMask`; disable it when source assets are clean.
 
 Lightning and Mausoleum are opaque environment clips rather than black-keyed gestures. CSS restores Lightning's missing illumination with an irregular multi-flash overlay. Mausoleum gets a warm window light that ignites, flickers, and extinguishes; adjust its percentage bounds with `mausoleumWindow` in `config.js` rather than editing CSS. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
 
 Lightning audio does not require another asset: after **Awaken portrait** is selected, Web Audio synthesizes a restrained low thunder roll and starts it at `lightningThunderDelayRatio` of the clip duration, aligned with the strongest CSS flash. To use a sourced/licensed recording later, set `lightningSound` to its path; the same timing and `lightningThunderVolume` are retained. Keeping the default procedural sound avoids shipping an unlicensed sample and avoids another network dependency.
 
-After the first clip is ready, `hero.png` is hidden and the complete encoded video frame supplies both the raven and cemetery. This preserves every dark feather pixel exactly as decoded.
+During keyed raven gestures, `hero.png` fades away to reveal `cemetery-background.png` beneath the moving raven. This prevents the baked-in resting raven from ghosting around slightly differently framed animation footage. If a final clip still needs a tiny registration correction, adjust `gestureAlignment` in `config.js`; it moves/scales only the animation canvas.
 
 After initial loading, `hero.png` is only an error fallback. Two video decoders are used as a double buffer: while one clip is visible, the next is loaded in the hidden slot, sought to `0.001`, and paused only after `seeked` confirms its first frame is decoded. The slots then swap, leaving the upcoming clip's own first frame as the idle portrait. When its independent random deadline arrives, that exact video element starts playing—there is no still-to-video boundary and no black source-loading flash.
 
-Flight is a locked pair: `FLIGHT AWAY → paused first frame of FLIGHT RETURN → wait → FLIGHT RETURN`. No perched gesture can be selected while away, and only the completed return re-enters the normal scheduling queue. Flight Away pauses at `flightAwayCleanFrameSeconds`, using `requestVideoFrameCallback` where available and `timeupdate` as a compatibility fallback. This holds the first clean empty frame instead of exposing unwanted encoded tail frames while the hidden slot prepares Flight Return.
+Flight is a locked pair: `FLIGHT AWAY → paused first frame of FLIGHT RETURN → wait → FLIGHT RETURN`. No perched gesture can be selected while away, and only the completed return re-enters the normal scheduling queue. Flight Away still stops at `flightAwayCleanFrameSeconds`, preventing any unwanted encoded tail frames from appearing while the hidden slot prepares Flight Return.
 
 If Lightning works but another clip does not, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance.
 
