@@ -98,7 +98,7 @@ Silk may suspend a background tab or reclaim it under memory pressure, and Fire 
 
 ## Reliability and display safety
 
-Timers schedule only their next event and CSS handles atmosphere and 1–3 pixel burn-in drift. Missing clips fail back to the still rather than stopping later schedules. Video is loaded on demand and released after playback. Set `burnInProtection: false` to disable drift; hardware sleep/away scheduling remains recommended because subtle movement cannot guarantee burn-in prevention.
+Timers schedule only their next event. Missing clips fail back to the still rather than stopping later schedules, and inactive video sources are released after every handoff. Hardware sleep/away scheduling remains recommended for burn-in prevention.
 
 ## Debugging and asset replacement
 
