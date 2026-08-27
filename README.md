@@ -31,19 +31,19 @@ assets/video/Raven Animation – Small Feather Settle.mp4
 assets/video/Raven Animation – Wing Stretch.mp4
 ```
 
-Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, canvas copy, or colour adjustment.
+All stills and clips should share the same framing and aspect ratio so the first/last frames meet `hero.png` without a jump. The raven gesture clips have a flat black background rather than transparency. During playback a small WebGL shader removes that black background and composites the moving raven over `hero.png`; full-scene Lightning remains a normal opaque video. If WebGL is unavailable, the player deliberately falls back to the unkeyed video so movement remains testable rather than silently showing the still.
 
-The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, filters, blend modes, and overlay layers. Those effects can force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, producing block-shaped corruption even when the source file is intact. Slots switch with `visibility`, and the inactive slot releases its media source immediately after every swap so only one decoder remains allocated during playback.
+Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps. The shader also removes the top-left 7% watermark corner from gesture clips, revealing the matching hero artwork beneath. The separate opaque-video corner patch is controlled by `watermarkMask`; disable it when source assets are clean.
 
-Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps.
+Lightning and Mausoleum are opaque environment clips rather than black-keyed gestures. CSS restores Lightning's missing illumination with an irregular multi-flash overlay. Mausoleum gets a warm window light that ignites, flickers, and extinguishes; adjust its percentage bounds with `mausoleumWindow` in `config.js` rather than editing CSS. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
 
-Lightning and Mausoleum are played as complete, opaque video frames without CSS visual treatment. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
+Lightning audio does not require another asset: after **Awaken portrait** is selected, Web Audio synthesizes a restrained low thunder roll and starts it at `lightningThunderDelayRatio` of the clip duration, aligned with the strongest CSS flash. To use a sourced/licensed recording later, set `lightningSound` to its path; the same timing and `lightningThunderVolume` are retained. Keeping the default procedural sound avoids shipping an unlicensed sample and avoids another network dependency.
 
-Lightning audio does not require another asset: after **Awaken portrait** is selected, Web Audio synthesizes a restrained low thunder roll and starts it at `lightningThunderDelayRatio` of the clip duration. To use a sourced/licensed recording later, set `lightningSound` to its path; the same timing and `lightningThunderVolume` are retained. Keeping the default procedural sound avoids shipping an unlicensed sample and avoids another network dependency.
+During keyed raven gestures, `hero.png` fades away to reveal `cemetery-background.png` beneath the moving raven. This prevents the baked-in resting raven from ghosting around slightly differently framed animation footage. If a final clip still needs a tiny registration correction, adjust `gestureAlignment` in `config.js`; it moves/scales only the animation canvas.
 
-There is no still-image path, including during initial loading or after an error. Two video elements provide a handoff buffer: the next clip is loaded in the hidden slot, sought to `0.001`, and paused only after `seeked` confirms its first frame is decoded. The slots then swap, the old slot is unloaded immediately, and the upcoming clip's own first frame becomes the idle portrait. When its independent random deadline arrives, that exact video element starts playing—there is no still-to-video boundary, image fallback, black source-loading flash, or second decoder retained during playback. If loading fails, the player clears both video sources and retries without substituting any PNG.
+After initial loading, `hero.png` is only an error fallback. Two video decoders are used as a double buffer: while one clip is visible, the next is loaded in the hidden slot, sought to `0.001`, and paused only after `seeked` confirms its first frame is decoded. The slots then swap, leaving the upcoming clip's own first frame as the idle portrait. When its independent random deadline arrives, that exact video element starts playing—there is no still-to-video boundary and no black source-loading flash.
 
-Flight is a locked pair: `FLIGHT AWAY → paused first frame of FLIGHT RETURN → wait → FLIGHT RETURN`. No perched gesture can be selected while away, and only the completed return re-enters the normal scheduling queue. Flight Away pauses at `flightAwayCleanFrameSeconds`, using `requestVideoFrameCallback` where available and `timeupdate` as a compatibility fallback. This holds the first clean empty frame instead of exposing unwanted encoded tail frames while the hidden slot prepares Flight Return.
+Flight is a locked pair: `FLIGHT AWAY → paused first frame of FLIGHT RETURN → wait → FLIGHT RETURN`. No perched gesture can be selected while away, and only the completed return re-enters the normal scheduling queue. Flight Away still stops at `flightAwayCleanFrameSeconds`, preventing any unwanted encoded tail frames from appearing while the hidden slot prepares Flight Return.
 
 If Lightning works but another clip does not, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance.
 
@@ -59,7 +59,7 @@ Edit the single `CONFIG` object in `config.js`. All replaceable background paths
 
 ### Replacing assets on GitHub Pages
 
-GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any MP4 or audio asset, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
+GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any PNG or MP4, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
 
 After deploying, open `https://YOUR-PAGES-URL/?debug=1`, force one affected clip, and confirm its loading message contains the configured filename and new `?v=` value. Asset paths on GitHub Pages are case-sensitive, including the `.mp4` extension. If the old asset remains temporarily, reload after GitHub Pages finishes publishing the commit; changing `assetVersion` handles browser/CDN asset caching but cannot make an unfinished Pages deployment complete sooner.
 
@@ -96,7 +96,7 @@ Silk may suspend a background tab or reclaim it under memory pressure, and Fire 
 
 ## Reliability and display safety
 
-Timers schedule only their next event. Missing clips clear the player and retry rather than substituting a still, and inactive video sources are released after every handoff. Hardware sleep/away scheduling remains recommended for burn-in prevention.
+Timers schedule only their next event. Missing clips fail back to the still rather than stopping later schedules, and inactive video sources are released after every handoff. Hardware sleep/away scheduling remains recommended for burn-in prevention.
 
 ## Debugging and asset replacement
 
