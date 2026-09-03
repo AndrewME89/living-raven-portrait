@@ -10,7 +10,9 @@ This repository contains the application but not the licensed artwork, video, or
 python3 -m http.server 8080
 ```
 
-Open `http://localhost:8080`. Do not open `index.html` directly: serving over HTTP gives browsers more reliable media behavior. Select **Awaken portrait** once after loading to permit clip audio under browser autoplay policies. The portrait continues silently if this is not selected.
+Open `http://localhost:8080`. Do not open `index.html` directly: serving over HTTP gives browsers more reliable media behavior. Select **Awaken portrait** once after loading to permit clip audio under browser autoplay policies and request a screen wake lock. The portrait continues silently if this is not selected.
+
+Screen wake lock is available only in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts): use HTTPS for the deployed portrait (browsers generally treat `localhost` as trustworthy for local development). The explicit **Awaken portrait** click—or Enter key press—provides the user gesture for both audio and wake-lock acquisition. When the page becomes visible again after switching away, it automatically requests a replacement because browsers normally release wake locks while a document is hidden. If Silk does not provide the Screen Wake Lock API or rejects a request, the portrait logs the condition and continues playback normally.
 
 ## Assets
 
@@ -93,7 +95,9 @@ State changes also emit a `portraitstatechange` browser event. Version 1 does no
 4. Disable Silk data-saving modes if they interfere with local media. Test HDMI audio at the deliberately low default volume.
 5. For unattended use, configure the display's own sleep schedule and periodically confirm Silk remains foregrounded.
 
-Silk may suspend a background tab or reclaim it under memory pressure, and Fire OS may show its screen saver despite page activity. Browser JavaScript cannot override those operating-system policies. If kiosk reliability is inadequate, these same static files can be wrapped in a Fire TV WebView application without redesigning the portrait.
+The portrait requests a screen wake lock after **Awaken portrait** and reacquires it when the page returns to the foreground. Validate the deployment on the target Fire Stick by leaving it idle longer than the configured system timeout, switching away from Silk and returning, and repeating the idle test after restarting Silk.
+
+Silk may suspend a background tab or reclaim it under memory pressure, and Fire OS device-level sleep or screen-saver settings may take precedence over a browser wake lock. Browser JavaScript cannot override those operating-system policies. If kiosk reliability is inadequate, these same static files can be wrapped in a Fire TV WebView application without redesigning the portrait. Only consider a locally vendored fallback after target-device testing shows the native API is unavailable or ineffective. In particular, do not adopt a hidden-video workaround without proving that it uses no competing decoder, does not corrupt the visible MP4 or interrupt audio, and complies with autoplay restrictions.
 
 ## Reliability and display safety
 
