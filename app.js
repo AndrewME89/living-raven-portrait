@@ -19,7 +19,7 @@
   ];
   var portrait=document.getElementById('portrait'), gate=document.getElementById('soundGate');
   var panel=document.getElementById('debugPanel'), status=document.getElementById('debugStatus');
-  var soundUnlocked=false, audioContext=null, eventAudio=null, eventTimer=null;
+  var soundUnlocked=false, audioContext=null, wakeLock=null, wakeLockRequest=null, eventAudio=null, eventTimer=null;
   var actionTimer=null, busy=false, away=false, debugBuilt=false;
   var dueTimes={}, generation=0;
 
@@ -52,6 +52,24 @@
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
+  function requestWakeLock(){
+    if(!navigator.wakeLock||typeof navigator.wakeLock.request!=='function'){
+      console.warn('[Haunted Portrait] Screen Wake Lock API is unavailable; continuing without it');
+      return;
+    }
+    if((wakeLock&&!wakeLock.released)||wakeLockRequest)return;
+    try{
+      wakeLockRequest=navigator.wakeLock.request('screen').then(function(sentinel){
+        wakeLock=sentinel;
+        sentinel.addEventListener('release',function(){if(wakeLock===sentinel)wakeLock=null;});
+        return sentinel;
+      }).catch(function(error){console.warn('[Haunted Portrait] Could not acquire screen wake lock; continuing playback',error);}).then(function(result){wakeLockRequest=null;return result;});
+    }catch(error){
+      wakeLockRequest=null;
+      console.warn('[Haunted Portrait] Could not acquire screen wake lock; continuing playback',error);
+    }
+    return wakeLockRequest;
+  }
   function thunder(){var c=getAudioContext();if(!c)return;var duration=3.8,b=c.createBuffer(1,Math.ceil(c.sampleRate*duration),c.sampleRate),data=b.getChannelData(0),last=0;for(var i=0;i<data.length;i++){var white=Math.random()*2-1;last=last*.985+white*.015;data[i]=(white*.22+last*3.2)*Math.pow(1-i/data.length,1.7);}var source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain(),now=c.currentTime;filter.type='lowpass';filter.frequency.value=190;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(CONFIG.lightningThunderVolume,now+.08);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);source.buffer=b;source.connect(filter);filter.connect(gain);gain.connect(c.destination);source.start();}
   function environmentStart(name){if(!soundUnlocked)return;if(name==='mausoleum'&&CONFIG.mausoleumSound){eventAudio=new Audio(assetUrl(CONFIG.mausoleumSound));eventAudio.volume=CONFIG.videoVolume;eventAudio.play().catch(function(){});}if(name==='lightning'){eventTimer=setTimeout(function(){if(CONFIG.lightningSound){eventAudio=new Audio(assetUrl(CONFIG.lightningSound));eventAudio.volume=CONFIG.lightningThunderVolume;eventAudio.play().catch(function(){});}else thunder();},active.video.duration*CONFIG.lightningThunderDelayRatio*1000);}}
   function environmentStop(){if(eventTimer)clearTimeout(eventTimer);eventTimer=null;if(eventAudio){eventAudio.pause();eventAudio=null;}}
@@ -103,13 +121,14 @@
   function fallback(error){console.error('[Haunted Portrait]',error);busy=false;away=false;portrait.classList.remove('raven-away');resetSlot(active);resetSlot(standby);announce(error.message+' — retrying video');setTimeout(runNormalLoop,2000);}
   function force(name){if(name==='flightReturn'||busy)return;clearTimeout(actionTimer);generation++;var chosen=name==='flight'?'flightAway':name;primeAndSwap(chosen).then(function(){return playActive();}).then(function(){if(name==='flight')runFlightReturn();else runNormalLoop();}).catch(fallback);}
 
-  function unlock(){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}
+  function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
   function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button');b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
 
   gate.addEventListener('click',unlock);
   document.addEventListener('keydown',function(e){if(e.key==='Enter')unlock();if(e.key==='d'||e.key==='D'){if(!debugBuilt)buildDebug();else panel.hidden=!panel.hidden;}});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&soundUnlocked)requestWakeLock();});
   if(debugRequested())buildDebug();
   BEHAVIOURS.forEach(scheduleDue);setState('ACTIVE');runNormalLoop();
   window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles};
