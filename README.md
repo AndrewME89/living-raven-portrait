@@ -14,21 +14,22 @@ Open `http://localhost:8080`. Do not open `index.html` directly: serving over HT
 
 ## Assets
 
-Create these folders using the ASCII-hyphen names below. The player requests these exact names first; compatibility retries also recognize older en-dash/em-dash, `Raven Movement`, and action-only filenames:
+Create the video folder using these exact, case-sensitive filenames:
 
 ```text
-assets/video/Raven Animation - Blink.mp4
-assets/video/Raven Animation - Double Blink.mp4
-assets/video/Raven Animation - Flight Away.mp4
-assets/video/Raven Animation - Flight Return.mp4
-assets/video/Raven Animation - Lightning.mp4
-assets/video/Raven Animation - Mausoleum.mp4
-assets/video/Raven Animation - Look Left.mp4
-assets/video/Raven Animation - Look Viewer.mp4
-assets/video/Raven Animation - Preen.mp4
-assets/video/Raven Animation - Ruffle.mp4
-assets/video/Raven Animation - Small Feather Settle.mp4
-assets/video/Raven Animation - Wing Stretch.mp4
+assets/video/Adjust.mp4
+assets/video/Away.mp4
+assets/video/Blink.mp4
+assets/video/DoubleBlink.mp4
+assets/video/Lightning.mp4
+assets/video/LookLeft.mp4
+assets/video/LookViewer.mp4
+assets/video/Mausoleum.mp4
+assets/video/Preen.mp4
+assets/video/Return.mp4
+assets/video/Ruffle.mp4
+assets/video/Settle.mp4
+assets/video/Stretch.mp4
 ```
 
 Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, canvas copy, or colour adjustment.
@@ -73,7 +74,7 @@ Use any of these methods, then reload if applicable:
 
 A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
 
-The debug panel has eleven actions. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
+The debug panel has twelve actions, including **Adjust**. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
 
 The public integration seam is `window.HauntedPortrait`:
 

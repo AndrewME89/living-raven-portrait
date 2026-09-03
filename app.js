@@ -2,13 +2,14 @@
   'use strict';
 
   var DEBUG_ACTIONS = [
-    ['blink','Blink'], ['doubleBlink','Double blink'], ['ruffle','Ruffle'],
+    ['blink','Blink'], ['doubleBlink','Double blink'], ['adjust','Adjust'], ['ruffle','Ruffle'],
     ['settle','Feather settle'], ['preen','Preen'], ['wingStretch','Wing stretch'],
     ['lookLeft','Look left'], ['lookViewer','Look viewer'], ['flight','Flight away + return'],
     ['lightning','Lightning + thunder'], ['mausoleum','Mausoleum + sound']
   ];
   var BEHAVIOURS = [
     { name:'blink', unit:1000, min:'blinkMinSeconds', max:'blinkMaxSeconds' },
+    { name:'adjust', unit:60000, min:'adjustMinMinutes', max:'adjustMaxMinutes' },
     { name:'ruffle', unit:60000, min:'ruffleMinMinutes', max:'ruffleMaxMinutes' },
     { name:'settle', unit:60000, min:'settleMinMinutes', max:'settleMaxMinutes' },
     { name:'preen', unit:60000, min:'preenMinMinutes', max:'preenMaxMinutes' },
@@ -30,32 +31,17 @@
     if(name==='gaze')return Math.random()<.5?'lookLeft':'lookViewer';
     return name;
   }
-  function candidates(filename) {
-    var list=[];
-    function add(value){if(value&&list.indexOf(value)===-1)list.push(value);}
-    add(filename);
-    add(filename.replace(/ - /g,' – '));
-    add(filename.replace(/ - /g,' — '));
-    add(filename.replace(/ - /g,'-'));
-    list.slice().forEach(function(value){add(value.replace('Raven Animation','Raven Movement'));});
-    var shortName=filename.replace(/^Raven (?:Animation|Movement)\s*(?:[-–—]\s*)?/,'');
-    add(shortName);
-    add('Raven Animation '+shortName);
-    add('Raven Movement '+shortName);
-    return list;
-  }
   function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),name:null,frameCallback:null,onCleanFrame:null}; }
   var active=makeSlot('videoSlotA'), standby=makeSlot('videoSlotB');
   function waitEvent(target,event) { return new Promise(function(resolve,reject){var timeout=setTimeout(function(){cleanup();reject(new Error('Timed out waiting for '+event));},12000);function done(){cleanup();resolve();}function fail(){cleanup();reject(new Error('Media failed'));}function cleanup(){clearTimeout(timeout);target.removeEventListener(event,done);target.removeEventListener('error',fail);}target.addEventListener(event,done);target.addEventListener('error',fail);}); }
-  function loadCandidate(slot,name,index) {
-    var names=candidates(CONFIG.videoFiles[name]);if(index>=names.length)return Promise.reject(new Error('No playable file for '+name));
-    slot.video.src=assetUrl(CONFIG.videoRoot+names[index]);slot.video.load();
-    return waitEvent(slot.video,'loadeddata').catch(function(){return loadCandidate(slot,name,index+1);});
+  function loadVideo(slot,name) {
+    slot.video.src=assetUrl(CONFIG.videoRoot+CONFIG.videoFiles[name]);slot.video.load();
+    return waitEvent(slot.video,'loadeddata');
   }
   function prime(slot,name) {
     slot.name=name;slot.video.muted=!soundUnlocked||name==='lightning'||name==='mausoleum';slot.video.volume=CONFIG.videoVolume;
     announce('Priming '+name);
-    return loadCandidate(slot,name,0).then(function(){slot.video.currentTime=.001;return waitEvent(slot.video,'seeked');}).then(function(){slot.video.pause();announce('Ready: '+name+' — first frame paused');});
+    return loadVideo(slot,name).then(function(){slot.video.currentTime=.001;return waitEvent(slot.video,'seeked');}).then(function(){slot.video.pause();announce('Ready: '+name+' — first frame paused');});
   }
   function swapToStandby() {
     active.root.classList.remove('is-active');standby.root.classList.add('is-active');

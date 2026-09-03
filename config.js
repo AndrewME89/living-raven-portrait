@@ -1,21 +1,22 @@
 /* The only file most installations need to edit. Times are deliberately broad. */
 var CONFIG = Object.freeze({
   /* Bump this value whenever replacing an asset without changing its filename. */
-  assetVersion: '2026-09-03-1',
+  assetVersion: '2026-09-03-2',
   videoRoot: 'assets/video/',
   videoFiles: Object.freeze({
-    blink: 'Raven Animation - Blink.mp4',
-    doubleBlink: 'Raven Animation - Double Blink.mp4',
-    flightAway: 'Raven Animation - Flight Away.mp4',
-    flightReturn: 'Raven Animation - Flight Return.mp4',
-    lightning: 'Raven Animation - Lightning.mp4',
-    mausoleum: 'Raven Animation - Mausoleum.mp4',
-    lookLeft: 'Raven Animation - Look Left.mp4',
-    lookViewer: 'Raven Animation - Look Viewer.mp4',
-    preen: 'Raven Animation - Preen.mp4',
-    ruffle: 'Raven Animation - Ruffle.mp4',
-    settle: 'Raven Animation - Small Feather Settle.mp4',
-    wingStretch: 'Raven Animation - Wing Stretch.mp4'
+    adjust: 'Adjust.mp4',
+    blink: 'Blink.mp4',
+    doubleBlink: 'DoubleBlink.mp4',
+    flightAway: 'Away.mp4',
+    flightReturn: 'Return.mp4',
+    lightning: 'Lightning.mp4',
+    mausoleum: 'Mausoleum.mp4',
+    lookLeft: 'LookLeft.mp4',
+    lookViewer: 'LookViewer.mp4',
+    preen: 'Preen.mp4',
+    ruffle: 'Ruffle.mp4',
+    settle: 'Settle.mp4',
+    wingStretch: 'Stretch.mp4'
   }),
   mausoleumSound: 'assets/audio/Raven Animation – Mausoleum.mp4',
   /* Optional licensed thunder file. Null uses the built-in Web Audio thunder. */
@@ -25,6 +26,8 @@ var CONFIG = Object.freeze({
   blinkMinSeconds: 20,
   blinkMaxSeconds: 120,
   doubleBlinkChance: 0.12,
+  adjustMinMinutes: 5,
+  adjustMaxMinutes: 18,
   ruffleMinMinutes: 4,
   ruffleMaxMinutes: 20,
   settleMinMinutes: 3,
