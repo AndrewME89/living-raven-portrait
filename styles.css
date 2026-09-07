@@ -18,4 +18,5 @@ body { background: #050707; }
 .debug-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; text-transform: uppercase; letter-spacing: .12em; font-size: .75rem; }
 .debug-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: .4rem; }
 .debug-panel button { padding: .5rem; color: inherit; background: #17201d; border: 1px solid #3c4944; }
+.debug-panel button:disabled { color: #6f7773; background: #101512; opacity: .7; }
 .debug-panel p { margin: .75rem 0 0; color: #8f9d96; font-size: .8rem; }

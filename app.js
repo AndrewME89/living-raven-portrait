@@ -26,29 +26,35 @@
   function assetUrl(path) { return path+(path.indexOf('?')<0?'?':'&')+'v='+encodeURIComponent(CONFIG.assetVersion); }
   function rand(min,max) { return min+Math.random()*(max-min); }
   function announce(text) { status.textContent=text; }
+  function clipEnabled(name) { return !CONFIG.disabledClips||!CONFIG.disabledClips[name]; }
   function clipName(name) {
-    if(name==='blink'&&Math.random()<CONFIG.doubleBlinkChance)return 'doubleBlink';
+    if(name==='blink'&&clipEnabled('doubleBlink')&&Math.random()<CONFIG.doubleBlinkChance)return 'doubleBlink';
     if(name==='gaze')return Math.random()<.5?'lookLeft':'lookViewer';
+    if(name==='flight')return 'flightAway';
     return name;
   }
   function makeSlot(id) { var root=document.getElementById(id);return {root:root,video:root.querySelector('video'),name:null,frameCallback:null,onCleanFrame:null}; }
   var active=makeSlot('videoSlotA'), standby=makeSlot('videoSlotB');
   function waitEvent(target,event) { return new Promise(function(resolve,reject){var timeout=setTimeout(function(){cleanup();reject(new Error('Timed out waiting for '+event));},12000);function done(){cleanup();resolve();}function fail(){cleanup();reject(new Error('Media failed'));}function cleanup(){clearTimeout(timeout);target.removeEventListener(event,done);target.removeEventListener('error',fail);}target.addEventListener(event,done);target.addEventListener('error',fail);}); }
   function loadVideo(slot,name) {
+    if(!clipEnabled(name))return Promise.reject(new Error('Clip disabled: '+name));
+    if(!CONFIG.videoFiles[name])return Promise.reject(new Error('Unknown clip: '+name));
     slot.video.src=assetUrl(CONFIG.videoRoot+CONFIG.videoFiles[name]);slot.video.load();
     return waitEvent(slot.video,'loadeddata');
   }
+  function seekToIdleFrame(slot) { slot.video.pause();if(slot.video.readyState>=2&&Math.abs(slot.video.currentTime-.001)<.0005)return Promise.resolve();var ready=waitEvent(slot.video,'seeked');slot.video.currentTime=.001;return ready.then(function(){slot.video.pause();}); }
   function prime(slot,name) {
+    if(!clipEnabled(name))return Promise.reject(new Error('Clip disabled: '+name));
     slot.name=name;slot.video.muted=!soundUnlocked||name==='lightning'||name==='mausoleum';slot.video.volume=CONFIG.videoVolume;
     announce('Priming '+name);
-    return loadVideo(slot,name).then(function(){slot.video.currentTime=.001;return waitEvent(slot.video,'seeked');}).then(function(){slot.video.pause();announce('Ready: '+name+' — first frame paused');});
+    return loadVideo(slot,name).then(function(){return seekToIdleFrame(slot);}).then(function(){announce('Ready: '+name+' — first frame paused');});
   }
   function swapToStandby() {
     active.root.classList.remove('is-active');standby.root.classList.add('is-active');
     var old=active;active=standby;standby=old;
     resetSlot(standby);
   }
-  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
+  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
@@ -80,12 +86,20 @@
     return new Promise(function(resolve,reject){
       var slot=active,name=slot.name,finished=false;
       busy=true;
+      function cleanup(){
+        slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.onCleanFrame=null;
+        if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);
+        slot.frameCallback=null;environmentStop(name);
+      }
+      function fail(error){
+        if(finished)return;
+        finished=true;cleanup();busy=false;reject(error);
+      }
       function complete(){
         if(finished)return;
-        finished=true;slot.video.onended=null;slot.video.ontimeupdate=null;slot.onCleanFrame=null;
-        if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);
-        slot.frameCallback=null;
-        environmentStop(name);busy=false;resolve(name);
+        finished=true;cleanup();
+        if(name==='flightAway'){busy=false;resolve(name);return;}
+        seekToIdleFrame(slot).then(function(){busy=false;resolve(name);}).catch(function(error){busy=false;reject(error);});
       }
       function holdCleanAwayFrame(){
         if(finished)return;
@@ -98,7 +112,7 @@
       slot.video.ontimeupdate=function(){
         if(name==='flightAway'&&CONFIG.flightAwayCleanFrameSeconds&&slot.video.currentTime>=CONFIG.flightAwayCleanFrameSeconds)holdCleanAwayFrame();
       };
-      slot.video.onerror=function(){busy=false;reject(new Error('Playback failed: '+name));};
+      slot.video.onerror=function(){fail(new Error('Playback failed: '+name));};
       slot.video.muted=!soundUnlocked||name==='lightning'||name==='mausoleum';
       if(name==='lightning'||name==='mausoleum')environmentStart(name);
       if(name==='flightAway'&&slot.video.requestVideoFrameCallback){
@@ -108,21 +122,40 @@
         };
         slot.frameCallback=slot.video.requestVideoFrameCallback(watchCleanFrame);
       }
-      slot.video.play().then(function(){announce('Playing '+name);}).catch(reject);
+      slot.video.play().then(function(){announce('Playing '+name);}).catch(function(error){fail(error);});
     });
   }
   function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
   function nextPlan(){var item=BEHAVIOURS[0];BEHAVIOURS.forEach(function(value){if(dueTimes[value.name]<dueTimes[item.name])item=value;});return {behaviour:item,name:clipName(item.name),due:dueTimes[item.name]};}
+  function scheduleRetry(error,token){
+    console.error('[Haunted Portrait]',error);busy=false;clearTimeout(actionTimer);
+    announce(error.message+' — keeping current frame and retrying');
+    actionTimer=setTimeout(function(){if(token===generation)runNormalLoop();},2000);
+  }
+  function recoverPlan(error,plan,token){
+    if(token!==generation)return;
+    resetSlot(standby);scheduleDue(plan.behaviour);scheduleRetry(error,token);
+  }
+  function recoverPlayback(error,plan,token){
+    if(token!==generation)return;
+    scheduleDue(plan.behaviour);
+    seekToIdleFrame(active).catch(function(){}).then(function(){scheduleRetry(error,token);});
+  }
   function runNormalLoop() {
     if(away)return;var token=++generation,plan=nextPlan();
-    primeAndSwap(plan.name).then(function(){if(token!==generation)return;var delay=Math.max(0,plan.due-Date.now());announce('Idle on '+plan.name+' first frame');actionTimer=setTimeout(function(){playActive().then(function(){scheduleDue(plan.behaviour);if(plan.behaviour.name==='flight')runFlightReturn();else runNormalLoop();}).catch(fallback);},delay);}).catch(fallback);
+    primeAndSwap(plan.name).then(function(){if(token!==generation)return;var delay=Math.max(0,plan.due-Date.now());announce('Idle on '+plan.name+' first frame');clearTimeout(actionTimer);actionTimer=setTimeout(function(){if(token!==generation)return;playActive().then(function(){if(token!==generation)return;scheduleDue(plan.behaviour);if(plan.behaviour.name==='flight')runFlightReturn(token,plan);else runNormalLoop();}).catch(function(error){recoverPlayback(error,plan,token);});},delay);}).catch(function(error){recoverPlan(error,plan,token);});
   }
-  function runFlightReturn(){enterAwayState();primeAndSwap('flightReturn').then(function(){var delay=rand(CONFIG.flightReturnMinSeconds,CONFIG.flightReturnMaxSeconds)*1000;announce('Raven away — return in '+Math.round(delay/1000)+'s');actionTimer=setTimeout(function(){playActive().then(function(){leaveAwayState();runNormalLoop();}).catch(fallback);},delay);}).catch(fallback);}
-  function fallback(error){console.error('[Haunted Portrait]',error);busy=false;away=false;portrait.classList.remove('raven-away');resetSlot(active);resetSlot(standby);announce(error.message+' — retrying video');setTimeout(runNormalLoop,2000);}
-  function force(name){if(name==='flightReturn'||busy)return;clearTimeout(actionTimer);generation++;var chosen=name==='flight'?'flightAway':name;primeAndSwap(chosen).then(function(){return playActive();}).then(function(){if(name==='flight')runFlightReturn();else runNormalLoop();}).catch(fallback);}
+  function runFlightReturn(token,plan){enterAwayState();primeAndSwap('flightReturn').then(function(){if(token!==generation)return;var delay=rand(CONFIG.flightReturnMinSeconds,CONFIG.flightReturnMaxSeconds)*1000;announce('Raven away — return in '+Math.round(delay/1000)+'s');clearTimeout(actionTimer);actionTimer=setTimeout(function(){if(token!==generation)return;playActive().then(function(){if(token!==generation)return;leaveAwayState();runNormalLoop();}).catch(function(error){leaveAwayState();recoverPlayback(error,plan,token);});},delay);}).catch(function(error){leaveAwayState();recoverPlan(error,plan,token);});}
+  function force(name){
+    if(name==='flightReturn'||busy)return;
+    var chosen=name==='flight'?'flightAway':name;
+    if(!clipEnabled(chosen)){announce('Disabled clip: '+chosen);return;}
+    clearTimeout(actionTimer);var token=++generation;
+    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS[BEHAVIOURS.length-1];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
+  }
 
   function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
-  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button');b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
+  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
 

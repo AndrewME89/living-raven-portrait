@@ -46,11 +46,11 @@ Lightning and Mausoleum are played as complete, opaque video frames without clip
 
 Lightning audio does not require another asset: after **Awaken portrait** is selected, Web Audio synthesizes a restrained low thunder roll and starts it at `lightningThunderDelayRatio` of the clip duration. To use a sourced/licensed recording later, set `lightningSound` to its path; the same timing and `lightningThunderVolume` are retained. Keeping the default procedural sound avoids shipping an unlicensed sample and avoids another network dependency.
 
-There is no still-image path, including during initial loading or after an error. Two video elements provide a handoff buffer: the next clip is loaded in the hidden slot, sought to `0.001`, and paused only after `seeked` confirms its first frame is decoded. The slots then swap, the old slot is unloaded immediately, and the upcoming clip's own first frame becomes the idle portrait. When its independent random deadline arrives, that exact video element starts playing—there is no still-to-video boundary, image fallback, black source-loading flash, or second decoder retained during playback. If loading fails, the player clears both video sources and retries without substituting any PNG.
+There is no still-image path, including during initial loading or after an error. Two video elements provide a handoff buffer: the next clip is loaded in the hidden slot, sought to `0.001`, and paused only after `seeked` confirms its first frame is decoded. The slots then swap, the old slot is unloaded immediately, and the upcoming clip's own first frame becomes the idle portrait. When its independent random deadline arrives, that exact video element starts playing—there is no still-to-video boundary, image fallback, black source-loading flash, or second decoder retained during playback. After ordinary playback, the visible clip is returned to its decoded first frame before another handoff begins. If the hidden replacement fails to load, the player keeps the current frame visible, reschedules the failed behavior, and retries without substituting any PNG.
 
 Flight is a locked pair: `FLIGHT AWAY → paused first frame of FLIGHT RETURN → wait → FLIGHT RETURN`. No perched gesture can be selected while away, and only the completed return re-enters the normal scheduling queue. Flight Away pauses at `flightAwayCleanFrameSeconds`, using `requestVideoFrameCallback` where available and `timeupdate` as a compatibility fallback. This holds the first clean empty frame instead of exposing unwanted encoded tail frames while the hidden slot prepares Flight Return.
 
-If Lightning works but another clip does not, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance.
+If an enabled clip does not play, open debug mode and press that clip's button once. The status line distinguishes **Loaded** (Silk decoded the first frame) from **Playing** (the browser emitted its actual playback event). It also reports missing files, autoplay blocking, stalls, load timeouts, and clips whose playback clock does not advance.
 
 Silk's support is most reliable with H.264 video (`yuv420p`) and AAC audio in an MP4 container. A clip that loads its first frame but does not advance should be re-encoded with:
 
@@ -61,6 +61,8 @@ ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac 
 ## Configuration
 
 Edit the single `CONFIG` object in `config.js`. All replaceable background paths and video filenames live at the top of that object; there are no asset filenames to keep synchronized in the HTML, CSS, or player code. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
+
+`DoubleBlink.mp4`, `Lightning.mp4`, and `Mausoleum.mp4` are temporarily listed in `disabledClips` because their current renders do not meet the portrait's visual standard. Double Blink is excluded from automatic Blink variation, while Lightning and Mausoleum are unavailable to debug controls and the public trigger API. Their file mappings remain in place for easy reinstatement: replace the corrected videos, bump `assetVersion`, and remove their keys from `disabledClips` in the same deployment.
 
 ### Replacing assets on GitHub Pages
 
@@ -78,7 +80,7 @@ Use any of these methods, then reload if applicable:
 
 A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
 
-The debug panel has twelve actions, including **Adjust**. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
+The debug panel has twelve actions, including **Adjust**. Temporarily unavailable renders remain visible as disabled buttons so operators can distinguish an intentional exclusion from a missing control. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. When enabled, **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
 
 The public integration seam is `window.HauntedPortrait`:
 
@@ -103,7 +105,7 @@ Silk may suspend a background tab or reclaim it under memory pressure, and Fire 
 
 ## Reliability and display safety
 
-Timers schedule only their next event. Missing clips clear the player and retry rather than substituting a still, and inactive video sources are released after every handoff. Hardware sleep/away scheduling remains recommended for burn-in prevention.
+Timers schedule only their next event. A failed hidden clip is rescheduled without clearing the visible frame or starving the remaining behavior queue, and inactive video sources are released after every successful handoff. Hardware sleep/away scheduling remains recommended for burn-in prevention.
 
 ## Debugging and asset replacement
 

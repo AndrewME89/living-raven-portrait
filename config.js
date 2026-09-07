@@ -18,6 +18,12 @@ var CONFIG = Object.freeze({
     settle: 'Settle.mp4',
     wingStretch: 'Stretch.mp4'
   }),
+  /* Keep rendered-but-unapproved clips addressable without allowing playback. */
+  disabledClips: Object.freeze({
+    doubleBlink: true,
+    lightning: true,
+    mausoleum: true
+  }),
   mausoleumSound: 'assets/audio/Raven Animation – Mausoleum.mp4',
   /* Optional licensed thunder file. Null uses the built-in Web Audio thunder. */
   lightningSound: null,
