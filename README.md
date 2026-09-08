@@ -22,6 +22,8 @@ Create the video folder using these exact, case-sensitive filenames:
 assets/video/Adjust.mp4
 assets/video/Away.mp4
 assets/video/Blink.mp4
+assets/video/Dance.mp4
+assets/video/Dance2_Hardstylez.mp4
 assets/video/DoubleBlink.mp4
 assets/video/Lightning.mp4
 assets/video/LookLeft.mp4
@@ -62,7 +64,7 @@ ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac 
 
 Edit the single `CONFIG` object in `config.js`. All replaceable background paths and video filenames live at the top of that object; there are no asset filenames to keep synchronized in the HTML, CSS, or player code. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
 
-`DoubleBlink.mp4`, `Lightning.mp4`, and `Mausoleum.mp4` are temporarily listed in `disabledClips` because their current renders do not meet the portrait's visual standard. Double Blink is excluded from automatic Blink variation, while Lightning and Mausoleum are unavailable to debug controls and the public trigger API. Their file mappings remain in place for easy reinstatement: replace the corrected videos, bump `assetVersion`, and remove their keys from `disabledClips` in the same deployment.
+All 15 portrait clips are enabled. Double Blink remains an occasional automatic Blink variation, while Lightning and Mausoleum retain their special sound handling and are available through the debug controls and public trigger API. Dance is one rare scheduled behavior with a single due time; when it becomes due, the scheduler randomly chooses either `Dance.mp4` or `Dance2_Hardstylez.mp4`. Add a media key to `disabledClips` only when a render must remain mapped but temporarily unavailable.
 
 ### Replacing assets on GitHub Pages
 
@@ -80,7 +82,7 @@ Use any of these methods, then reload if applicable:
 
 A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
 
-The debug panel has twelve actions, including **Adjust**. Temporarily unavailable renders remain visible as disabled buttons so operators can distinguish an intentional exclusion from a missing control. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. When enabled, **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
+The debug panel has fourteen actions, including separate **Dance** and **Dance (Hardstylez)** buttons so each render can be tested deterministically. Temporarily unavailable renders remain visible as disabled buttons so operators can distinguish an intentional exclusion from a missing control. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
 
 The public integration seam is `window.HauntedPortrait`:
 
@@ -109,6 +111,6 @@ Timers schedule only their next event. A failed hidden clip is rescheduled witho
 
 ## Debugging and asset replacement
 
-Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CLIPS`, optionally add a scheduler entry, and expose a debug button in `app.js`.
+Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CONFIG.videoFiles`, optionally add a scheduler entry, and expose a debug button in `app.js`.
 
 Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.

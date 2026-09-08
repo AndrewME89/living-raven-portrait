@@ -5,6 +5,7 @@
     ['blink','Blink'], ['doubleBlink','Double blink'], ['adjust','Adjust'], ['ruffle','Ruffle'],
     ['settle','Feather settle'], ['preen','Preen'], ['wingStretch','Wing stretch'],
     ['lookLeft','Look left'], ['lookViewer','Look viewer'], ['flight','Flight away + return'],
+    ['dance','Dance'], ['danceHardstyle','Dance (Hardstylez)'],
     ['lightning','Lightning + thunder'], ['mausoleum','Mausoleum + sound']
   ];
   var BEHAVIOURS = [
@@ -15,6 +16,7 @@
     { name:'preen', unit:60000, min:'preenMinMinutes', max:'preenMaxMinutes' },
     { name:'wingStretch', unit:60000, min:'wingStretchMinMinutes', max:'wingStretchMaxMinutes' },
     { name:'gaze', unit:60000, min:'headMoveMinMinutes', max:'headMoveMaxMinutes' },
+    { name:'dance', unit:3600000, min:'danceMinHours', max:'danceMaxHours' },
     { name:'flight', unit:3600000, min:'flightAwayMinHours', max:'flightAwayMaxHours' }
   ];
   var portrait=document.getElementById('portrait'), gate=document.getElementById('soundGate');
@@ -30,6 +32,7 @@
   function clipName(name) {
     if(name==='blink'&&clipEnabled('doubleBlink')&&Math.random()<CONFIG.doubleBlinkChance)return 'doubleBlink';
     if(name==='gaze')return Math.random()<.5?'lookLeft':'lookViewer';
+    if(name==='dance')return Math.random()<.5?'dance':'danceHardstyle';
     if(name==='flight')return 'flightAway';
     return name;
   }
@@ -151,7 +154,7 @@
     var chosen=name==='flight'?'flightAway':name;
     if(!clipEnabled(chosen)){announce('Disabled clip: '+chosen);return;}
     clearTimeout(actionTimer);var token=++generation;
-    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS[BEHAVIOURS.length-1];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
+    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS.filter(function(item){return item.name==='flight';})[0];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
   }
 
   function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
