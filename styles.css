@@ -2,7 +2,8 @@
 * { box-sizing: border-box; }
 html, body, .portrait { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #050707; }
-.portrait { position: relative; isolation: isolate; background: #080b0b; --museum-glaze-opacity: .055; --museum-vignette-opacity: .16; }
+.color-matrices { position: absolute; left: 0; top: 0; display: block; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.portrait { position: relative; isolation: isolate; background: #080b0b; --museum-glaze-opacity: .055; --museum-vignette-opacity: .16; --weather-overcast-opacity: 0; --weather-fog-opacity: 0; }
 .scene { position: absolute; inset: 0; overflow: hidden; background: #101715; }
 .scene::before, .scene::after { position: absolute; inset: 0; pointer-events: none; }
 .scene::before { content: ''; z-index: 10; background: radial-gradient(ellipse at center, rgba(2,5,5,0) 48%, rgba(2,5,5,var(--museum-vignette-opacity)) 100%), rgba(5,10,11,var(--museum-glaze-opacity)); }
@@ -12,6 +13,9 @@ body { background: #050707; }
 .video-slot { z-index: 5; visibility: hidden; pointer-events: none; }
 .video-slot.is-active { visibility: visible; }
 .raven-video { display: block; object-fit: cover; object-position: center; }
+.weather-overcast, .weather-fog { position: absolute; inset: 0; pointer-events: none; }
+.weather-overcast { z-index: 7; background: #071012; opacity: var(--weather-overcast-opacity); }
+.weather-fog { z-index: 8; background: radial-gradient(ellipse at 48% 45%, rgba(190,202,196,.72), rgba(139,156,150,.9)); opacity: var(--weather-fog-opacity); }
 .raven-video[data-clip="adjust"] { filter: url('#cm-adjust'); }
 .raven-video[data-clip="flightAway"] { filter: url('#cm-away'); }
 .raven-video[data-clip="blink"] { filter: url('#cm-blink'); }
