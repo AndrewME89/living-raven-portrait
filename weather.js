@@ -3,6 +3,7 @@
   'use strict';
 
   var lastGoodState=null,pollTimer=null,stormTimer=null,forced=false,started=false;
+  var portrait=document.getElementById('portrait');
 
   function weatherCodeToKind(code) {
     if(code===95||code===96||code===99)return 'storm';
@@ -16,6 +17,7 @@
 
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function coordinatesReady(){return CONFIG.weatherEnabled&&typeof CONFIG.latitude==='number'&&isFinite(CONFIG.latitude)&&typeof CONFIG.longitude==='number'&&isFinite(CONFIG.longitude);}
+  function clamp(value,min,max){value=Number(value);if(!isFinite(value))value=0;return Math.max(min,Math.min(max,value));}
   function normalize(current){
     var code=Number(current.weather_code);
     return {kind:weatherCodeToKind(code),cloudCover:Number(current.cloud_cover)||0,precipitation:Number(current.precipitation)||0,windSpeed:Number(current.wind_speed_10m)||0,isDay:Number(current.is_day)===1,weatherCode:isFinite(code)?code:0,temperature:current.temperature_2m==null?null:Number(current.temperature_2m),lastUpdated:new Date().toISOString()};
@@ -27,6 +29,36 @@
     return fetch(url,{cache:'no-store'}).then(function(response){if(!response.ok)throw new Error('weather HTTP '+response.status);return response.json();}).then(function(data){if(!data.current)throw new Error('weather response has no current conditions');return normalize(data.current);});
   }
 
+  function applySceneWeather(state){
+    if(!portrait)return;
+    var kind=state.kind||'clear';
+    var wind=clamp(state.windSpeed,0,120);
+    var windFactor=clamp(wind/60,0,1.5);
+    var rainOpacity=0,snowOpacity=0;
+
+    if(kind==='drizzle')rainOpacity=.18;
+    if(kind==='rain')rainOpacity=.32;
+    if(kind==='storm')rainOpacity=.48;
+    if(kind==='snow')snowOpacity=.38;
+
+    /* Real precipitation nudges intensity without turning the portrait into a weather radar. */
+    if(rainOpacity)rainOpacity=clamp(rainOpacity+Math.min(.12,clamp(state.precipitation,0,12)*.01),0,.62);
+    if(snowOpacity)snowOpacity=clamp(snowOpacity+Math.min(.08,clamp(state.precipitation,0,8)*.01),0,.5);
+
+    portrait.setAttribute('data-weather-kind',kind);
+    portrait.setAttribute('data-weather-windy',wind>=Number(CONFIG.weatherWindRuffleThresholdKmh||30)?'true':'false');
+    portrait.style.setProperty('--weather-rain-opacity',rainOpacity.toFixed(3));
+    portrait.style.setProperty('--weather-snow-opacity',snowOpacity.toFixed(3));
+
+    /* Two-depth motion: distant layers drift slowly, near layers move more noticeably. */
+    portrait.style.setProperty('--weather-fog-far-duration',Math.max(55,145/(1+windFactor)).toFixed(1)+'s');
+    portrait.style.setProperty('--weather-fog-near-duration',Math.max(40,105/(1+windFactor)).toFixed(1)+'s');
+    portrait.style.setProperty('--weather-rain-far-duration',Math.max(.55,1.35/(1+windFactor*.35)).toFixed(2)+'s');
+    portrait.style.setProperty('--weather-rain-near-duration',Math.max(.32,.82/(1+windFactor*.45)).toFixed(2)+'s');
+    portrait.style.setProperty('--weather-snow-far-duration',Math.max(8,18/(1+windFactor*.45)).toFixed(1)+'s');
+    portrait.style.setProperty('--weather-snow-near-duration',Math.max(5,12/(1+windFactor*.55)).toFixed(1)+'s');
+  }
+
   function stopStorm(){if(stormTimer)clearTimeout(stormTimer);stormTimer=null;}
   function scheduleStorm(){
     stopStorm();
@@ -35,6 +67,7 @@
   }
   function apply(state){
     window.HauntedPortrait.setWeather(state);
+    applySceneWeather(state);
     if(state.kind==='storm')scheduleStorm();else stopStorm();
     if(debugRequested())console.info('[Haunted Portrait] Weather applied',state);
   }
@@ -50,8 +83,10 @@
       clear:{kind:'clear',weatherCode:0,cloudCover:5,precipitation:0,windSpeed:5,isDay:false},
       cloudy:{kind:'cloudy',weatherCode:3,cloudCover:95,precipitation:0,windSpeed:10,isDay:false},
       fog:{kind:'fog',weatherCode:45,cloudCover:100,precipitation:0,windSpeed:4,isDay:false},
+      drizzle:{kind:'drizzle',weatherCode:53,cloudCover:95,precipitation:1,windSpeed:12,isDay:false},
       rain:{kind:'rain',weatherCode:63,cloudCover:100,precipitation:3,windSpeed:15,isDay:false},
       storm:{kind:'storm',weatherCode:95,cloudCover:100,precipitation:5,windSpeed:25,isDay:false},
+      snow:{kind:'snow',weatherCode:73,cloudCover:100,precipitation:2,windSpeed:10,isDay:false},
       windy:{kind:'cloudy',weatherCode:3,cloudCover:70,precipitation:0,windSpeed:threshold+10,isDay:false}
     };
     return states[kind]||states.clear;
