@@ -2,7 +2,6 @@
 * { box-sizing: border-box; }
 html, body, .portrait { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #050707; }
-.color-matrices { position: absolute; left: 0; top: 0; display: block; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 .portrait { position: relative; isolation: isolate; background: #080b0b; --museum-glaze-opacity: .055; --museum-vignette-opacity: .16; }
 .scene { position: absolute; inset: 0; overflow: hidden; background: #101715; }
 .scene::before, .scene::after { position: absolute; inset: 0; pointer-events: none; }
