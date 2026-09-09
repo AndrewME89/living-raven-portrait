@@ -5,7 +5,14 @@
     ['blink','Blink'], ['doubleBlink','Double blink'], ['adjust','Adjust'], ['ruffle','Ruffle'],
     ['settle','Feather settle'], ['preen','Preen'], ['wingStretch','Wing stretch'],
     ['lookLeft','Look left'], ['lookViewer','Look viewer'], ['flight','Flight away + return'],
+    ['dance','Dance'], ['danceHardstyle','Dance (Hardstylez)'],
     ['lightning','Lightning + thunder'], ['mausoleum','Mausoleum + sound']
+  ];
+  var WEATHER_ACTIONS = [
+    ['weather:clear','Weather: Clear'], ['weather:cloudy','Weather: Overcast'],
+    ['weather:fog','Weather: Fog'], ['weather:rain','Weather: Rain'],
+    ['weather:storm','Weather: Storm'], ['weather:windy','Weather: Windy'],
+    ['weather:live','Weather: Live']
   ];
   var BEHAVIOURS = [
     { name:'blink', unit:1000, min:'blinkMinSeconds', max:'blinkMaxSeconds' },
@@ -15,13 +22,14 @@
     { name:'preen', unit:60000, min:'preenMinMinutes', max:'preenMaxMinutes' },
     { name:'wingStretch', unit:60000, min:'wingStretchMinMinutes', max:'wingStretchMaxMinutes' },
     { name:'gaze', unit:60000, min:'headMoveMinMinutes', max:'headMoveMaxMinutes' },
+    { name:'dance', unit:3600000, min:'danceMinHours', max:'danceMaxHours' },
     { name:'flight', unit:3600000, min:'flightAwayMinHours', max:'flightAwayMaxHours' }
   ];
   var portrait=document.getElementById('portrait'), gate=document.getElementById('soundGate');
-  var panel=document.getElementById('debugPanel'), status=document.getElementById('debugStatus');
+  var panel=document.getElementById('debugPanel'), status=document.getElementById('debugStatus'), weatherStatus=document.getElementById('weatherStatus');
   var soundUnlocked=false, audioContext=null, wakeLock=null, wakeLockRequest=null, eventAudio=null, eventTimer=null;
-  var actionTimer=null, busy=false, away=false, debugBuilt=false;
-  var dueTimes={}, generation=0;
+  var actionTimer=null, busy=false, away=false, priming=false, debugBuilt=false;
+  var dueTimes={}, generation=0, weatherState=null, ruffleDelayMultiplier=1;
 
   function assetUrl(path) { return path+(path.indexOf('?')<0?'?':'&')+'v='+encodeURIComponent(CONFIG.assetVersion); }
   function rand(min,max) { return min+Math.random()*(max-min); }
@@ -30,6 +38,7 @@
   function clipName(name) {
     if(name==='blink'&&clipEnabled('doubleBlink')&&Math.random()<CONFIG.doubleBlinkChance)return 'doubleBlink';
     if(name==='gaze')return Math.random()<.5?'lookLeft':'lookViewer';
+    if(name==='dance')return Math.random()<.5?'dance':'danceHardstyle';
     if(name==='flight')return 'flightAway';
     return name;
   }
@@ -39,6 +48,7 @@
   function loadVideo(slot,name) {
     if(!clipEnabled(name))return Promise.reject(new Error('Clip disabled: '+name));
     if(!CONFIG.videoFiles[name])return Promise.reject(new Error('Unknown clip: '+name));
+    slot.video.setAttribute('data-clip',name);
     slot.video.src=assetUrl(CONFIG.videoRoot+CONFIG.videoFiles[name]);slot.video.load();
     return waitEvent(slot.video,'loadeddata');
   }
@@ -54,8 +64,8 @@
     var old=active;active=standby;standby=old;
     resetSlot(standby);
   }
-  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
-  function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
+  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.removeAttribute('data-clip');slot.video.load();slot.name=null; }
+  function primeAndSwap(name) { resetSlot(standby);priming=true;return prime(standby,name).then(function(){swapToStandby();priming=false;},function(error){priming=false;throw error;}); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
   function requestWakeLock(){
@@ -98,7 +108,7 @@
       function complete(){
         if(finished)return;
         finished=true;cleanup();
-        if(name==='flightAway'){busy=false;resolve(name);return;}
+        if(name==='flightAway'||name==='flightReturn'){slot.video.pause();busy=false;resolve(name);return;}
         seekToIdleFrame(slot).then(function(){busy=false;resolve(name);}).catch(function(error){busy=false;reject(error);});
       }
       function holdCleanAwayFrame(){
@@ -125,7 +135,7 @@
       slot.video.play().then(function(){announce('Playing '+name);}).catch(function(error){fail(error);});
     });
   }
-  function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
+  function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(item.name==='ruffle')delay*=ruffleDelayMultiplier;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
   function nextPlan(){var item=BEHAVIOURS[0];BEHAVIOURS.forEach(function(value){if(dueTimes[value.name]<dueTimes[item.name])item=value;});return {behaviour:item,name:clipName(item.name),due:dueTimes[item.name]};}
   function scheduleRetry(error,token){
     console.error('[Haunted Portrait]',error);busy=false;clearTimeout(actionTimer);
@@ -151,18 +161,35 @@
     var chosen=name==='flight'?'flightAway':name;
     if(!clipEnabled(chosen)){announce('Disabled clip: '+chosen);return;}
     clearTimeout(actionTimer);var token=++generation;
-    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS[BEHAVIOURS.length-1];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
+    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS.filter(function(item){return item.name==='flight';})[0];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
   }
 
   function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
-  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
+  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.concat(WEATHER_ACTIONS).forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(item[0].indexOf('weather:')!==0&&!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}if(action.indexOf('weather:')===0){if(window.Weather){if(action==='weather:live')window.Weather.useLive();else window.Weather.force(action.slice(8));}return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
+  function applyMuseumFinish(){portrait.classList.toggle('museum-finish-disabled',!CONFIG.museumFinishEnabled);portrait.style.setProperty('--museum-glaze-opacity',CONFIG.museumGlazeOpacity);portrait.style.setProperty('--museum-vignette-opacity',CONFIG.museumVignetteOpacity);}
+  function weatherNumber(value,min,max){value=Number(value);if(!isFinite(value))value=0;return Math.max(min,Math.min(max,value));}
+  function setWeather(state){
+    if(!state)return;
+    weatherState={kind:state.kind||'clear',cloudCover:weatherNumber(state.cloudCover,0,100),precipitation:weatherNumber(state.precipitation,0,Infinity),windSpeed:weatherNumber(state.windSpeed,0,Infinity),isDay:state.isDay===1||state.isDay===true,weatherCode:weatherNumber(state.weatherCode,0,999),temperature:state.temperature==null?null:Number(state.temperature),lastUpdated:state.lastUpdated||null};
+    var wet=weatherState.kind==='drizzle'||weatherState.kind==='rain'||weatherState.kind==='storm'||weatherState.kind==='snow';
+    var cloudFactor=weatherState.cloudCover/100;if(wet)cloudFactor=Math.max(cloudFactor,.65);
+    var overcast=CONFIG.weatherOvercastEnabled?cloudFactor*CONFIG.weatherOvercastMaxOpacity:0;
+    var fog=CONFIG.weatherFogEnabled&&weatherState.kind==='fog'?CONFIG.weatherFogMaxOpacity:0;
+    portrait.style.setProperty('--weather-overcast-opacity',weatherNumber(overcast,0,1));portrait.style.setProperty('--weather-fog-opacity',weatherNumber(fog,0,1));
+    ruffleDelayMultiplier=CONFIG.weatherWindBehaviourEnabled&&weatherState.windSpeed>=CONFIG.weatherWindRuffleThresholdKmh ? .6 : 1;
+    var updated=weatherState.lastUpdated?new Date(weatherState.lastUpdated).toLocaleTimeString():'forced';
+    weatherStatus.textContent='Weather: '+weatherState.kind+' · code '+weatherState.weatherCode+' · cloud '+Math.round(weatherState.cloudCover)+'% · wind '+Math.round(weatherState.windSpeed)+' km/h · precip '+weatherState.precipitation+' mm · '+updated;
+  }
+  function getWeather(){if(!weatherState)return null;var copy={};Object.keys(weatherState).forEach(function(key){copy[key]=weatherState[key];});return copy;}
+  function refreshWeather(){if(window.Weather&&window.Weather.refresh)return window.Weather.refresh();return Promise.resolve(null);}
+  function triggerWeatherLightning(){if(busy||away||priming||!clipEnabled('lightning'))return false;force('lightning');return true;}
 
   gate.addEventListener('click',unlock);
   document.addEventListener('keydown',function(e){if(e.key==='Enter')unlock();if(e.key==='d'||e.key==='D'){if(!debugBuilt)buildDebug();else panel.hidden=!panel.hidden;}});
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&soundUnlocked)requestWakeLock();});
-  if(debugRequested())buildDebug();
+  applyMuseumFinish();if(debugRequested())buildDebug();
   BEHAVIOURS.forEach(scheduleDue);setState('ACTIVE');runNormalLoop();
-  window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles};
+  window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles,setWeather:setWeather,getWeather:getWeather,refreshWeather:refreshWeather,triggerWeatherLightning:triggerWeatherLightning};
 }());
