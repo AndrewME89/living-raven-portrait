@@ -34,6 +34,7 @@
     var kind=state.kind||'clear';
     var wind=clamp(state.windSpeed,0,120);
     var windFactor=clamp(wind/60,0,1.5);
+    var fogBase=kind==='fog'&&CONFIG.weatherFogEnabled?clamp(CONFIG.weatherFogMaxOpacity,0,1):0;
     var rainOpacity=0,snowOpacity=0;
 
     if(kind==='drizzle')rainOpacity=.18;
@@ -47,8 +48,12 @@
 
     portrait.setAttribute('data-weather-kind',kind);
     portrait.setAttribute('data-weather-windy',wind>=Number(CONFIG.weatherWindRuffleThresholdKmh||30)?'true':'false');
-    portrait.style.setProperty('--weather-rain-opacity',rainOpacity.toFixed(3));
-    portrait.style.setProperty('--weather-snow-opacity',snowOpacity.toFixed(3));
+    portrait.style.setProperty('--weather-fog-far-opacity',(fogBase*.72).toFixed(3));
+    portrait.style.setProperty('--weather-fog-near-opacity',(fogBase*.92).toFixed(3));
+    portrait.style.setProperty('--weather-rain-far-opacity',(rainOpacity*.62).toFixed(3));
+    portrait.style.setProperty('--weather-rain-near-opacity',rainOpacity.toFixed(3));
+    portrait.style.setProperty('--weather-snow-far-opacity',(snowOpacity*.64).toFixed(3));
+    portrait.style.setProperty('--weather-snow-near-opacity',snowOpacity.toFixed(3));
 
     /* Two-depth motion: distant layers drift slowly, near layers move more noticeably. */
     portrait.style.setProperty('--weather-fog-far-duration',Math.max(55,145/(1+windFactor)).toFixed(1)+'s');
