@@ -3,7 +3,23 @@
 html, body, .portrait { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #050707; }
 .color-matrices { position: absolute; left: 0; top: 0; display: block; width: 0; height: 0; overflow: hidden; pointer-events: none; }
-.portrait { position: relative; isolation: isolate; background: #080b0b; --museum-glaze-opacity: .055; --museum-vignette-opacity: .16; --weather-overcast-opacity: 0; --weather-fog-opacity: 0; }
+.portrait {
+  position: relative;
+  isolation: isolate;
+  background: #080b0b;
+  --museum-glaze-opacity: .055;
+  --museum-vignette-opacity: .16;
+  --weather-overcast-opacity: 0;
+  --weather-fog-opacity: 0;
+  --weather-rain-opacity: 0;
+  --weather-snow-opacity: 0;
+  --weather-fog-far-duration: 145s;
+  --weather-fog-near-duration: 105s;
+  --weather-rain-far-duration: 1.35s;
+  --weather-rain-near-duration: .82s;
+  --weather-snow-far-duration: 18s;
+  --weather-snow-near-duration: 12s;
+}
 .scene { position: absolute; inset: 0; overflow: hidden; background: #101715; }
 .scene::before, .scene::after { position: absolute; inset: 0; pointer-events: none; }
 .scene::before { content: ''; z-index: 10; background: radial-gradient(ellipse at center, rgba(2,5,5,0) 48%, rgba(2,5,5,var(--museum-vignette-opacity)) 100%), rgba(5,10,11,var(--museum-glaze-opacity)); }
@@ -13,9 +29,80 @@ body { background: #050707; }
 .video-slot { z-index: 5; visibility: hidden; pointer-events: none; }
 .video-slot.is-active { visibility: visible; }
 .raven-video { display: block; object-fit: cover; object-position: center; }
-.weather-overcast, .weather-fog { position: absolute; inset: 0; pointer-events: none; }
-.weather-overcast { z-index: 7; background: #071012; opacity: var(--weather-overcast-opacity); }
-.weather-fog { z-index: 8; background: radial-gradient(ellipse at 48% 45%, rgba(190,202,196,.72), rgba(139,156,150,.9)); opacity: var(--weather-fog-opacity); }
+
+/* Weather is composed as artwork layers rather than a single flat tint. */
+.weather-overcast, .weather-fog, .weather-precipitation { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.weather-overcast { z-index: 7; background: rgba(7,16,18,var(--weather-overcast-opacity)); transition: background-color 2.5s ease; }
+.weather-fog { z-index: 8; }
+.weather-precipitation { z-index: 9; }
+.weather-fog-layer, .weather-precip-layer { position: absolute; pointer-events: none; }
+.weather-fog-layer { inset: -8% -12%; background-position: center; background-repeat: no-repeat; background-size: cover; will-change: transform, opacity; transition: opacity 3s ease; }
+.weather-fog-far { background-image: url('assets/weather/fog-far.png'); opacity: calc(var(--weather-fog-opacity) * .72); animation: weather-fog-far var(--weather-fog-far-duration) ease-in-out infinite alternate; }
+.weather-fog-near { background-image: url('assets/weather/fog-near.png'); opacity: calc(var(--weather-fog-opacity) * .92); animation: weather-fog-near var(--weather-fog-near-duration) ease-in-out infinite alternate-reverse; }
+.weather-precip-layer { inset: -20% -10%; opacity: 0; will-change: background-position, opacity; transition: opacity 1.8s ease; }
+
+/* Drizzle/rain/storm use two depths: sparse distant streaks and brighter near streaks. */
+.portrait[data-weather-kind='drizzle'] .weather-precip-far,
+.portrait[data-weather-kind='rain'] .weather-precip-far,
+.portrait[data-weather-kind='storm'] .weather-precip-far {
+  background-image:
+    repeating-linear-gradient(112deg, transparent 0 26px, rgba(197,214,218,.34) 27px 28px, transparent 29px 66px),
+    repeating-linear-gradient(112deg, transparent 0 43px, rgba(169,190,196,.24) 44px 45px, transparent 46px 96px);
+  background-size: 130px 180px, 190px 250px;
+  opacity: calc(var(--weather-rain-opacity) * .62);
+  animation: weather-rain-far var(--weather-rain-far-duration) linear infinite;
+}
+.portrait[data-weather-kind='drizzle'] .weather-precip-near,
+.portrait[data-weather-kind='rain'] .weather-precip-near,
+.portrait[data-weather-kind='storm'] .weather-precip-near {
+  background-image:
+    repeating-linear-gradient(112deg, transparent 0 39px, rgba(221,232,234,.42) 40px 41px, transparent 42px 105px),
+    repeating-linear-gradient(112deg, transparent 0 67px, rgba(191,208,212,.28) 68px 70px, transparent 71px 142px);
+  background-size: 170px 240px, 240px 330px;
+  opacity: var(--weather-rain-opacity);
+  animation: weather-rain-near var(--weather-rain-near-duration) linear infinite;
+}
+
+/* Snow is deliberately sparse and soft so the portrait still reads as a painting. */
+.portrait[data-weather-kind='snow'] .weather-precip-far {
+  background-image:
+    radial-gradient(circle, rgba(220,229,226,.55) 0 1px, transparent 1.7px),
+    radial-gradient(circle, rgba(206,219,216,.4) 0 1.2px, transparent 1.9px);
+  background-size: 58px 58px, 91px 91px;
+  background-position: 0 0, 23px 31px;
+  opacity: calc(var(--weather-snow-opacity) * .64);
+  animation: weather-snow-far var(--weather-snow-far-duration) linear infinite;
+}
+.portrait[data-weather-kind='snow'] .weather-precip-near {
+  background-image:
+    radial-gradient(circle, rgba(235,241,238,.72) 0 1.7px, transparent 2.5px),
+    radial-gradient(circle, rgba(215,227,223,.56) 0 2px, transparent 2.8px);
+  background-size: 84px 84px, 127px 127px;
+  background-position: 17px 9px, 61px 47px;
+  opacity: var(--weather-snow-opacity);
+  animation: weather-snow-near var(--weather-snow-near-duration) linear infinite;
+}
+
+/* Wind remains primarily behavioural (more Ruffle), but also pushes any active weather layers harder. */
+.portrait[data-weather-windy='true'] .weather-fog-far { animation-timing-function: linear; }
+.portrait[data-weather-windy='true'] .weather-fog-near { animation-timing-function: linear; }
+.portrait[data-weather-windy='true'] .weather-precip-layer { transform: skewX(-4deg); }
+
+@keyframes weather-fog-far {
+  0% { transform: translate3d(-4%, 1%, 0) scale(1.02); }
+  50% { transform: translate3d(1%, -1%, 0) scale(1.035); }
+  100% { transform: translate3d(5%, 1%, 0) scale(1.02); }
+}
+@keyframes weather-fog-near {
+  0% { transform: translate3d(5%, 0, 0) scale(1.04); }
+  50% { transform: translate3d(0, 1%, 0) scale(1.055); }
+  100% { transform: translate3d(-6%, -1%, 0) scale(1.04); }
+}
+@keyframes weather-rain-far { from { background-position: 0 -180px, 40px -250px; } to { background-position: -95px 180px, -80px 250px; } }
+@keyframes weather-rain-near { from { background-position: 0 -240px, 70px -330px; } to { background-position: -125px 240px, -105px 330px; } }
+@keyframes weather-snow-far { from { background-position: 0 -80px, 23px -140px; } to { background-position: 45px 620px, -37px 780px; } }
+@keyframes weather-snow-near { from { background-position: 17px -120px, 61px -190px; } to { background-position: -80px 760px, 140px 980px; } }
+
 .raven-video[data-clip="adjust"] { filter: url('#cm-adjust'); }
 .raven-video[data-clip="flightAway"] { filter: url('#cm-away'); }
 .raven-video[data-clip="blink"] { filter: url('#cm-blink'); }
@@ -42,3 +129,7 @@ body { background: #050707; }
 .debug-panel button { padding: .5rem; color: inherit; background: #17201d; border: 1px solid #3c4944; }
 .debug-panel button:disabled { color: #6f7773; background: #101512; opacity: .7; }
 .debug-panel p { margin: .75rem 0 0; color: #8f9d96; font-size: .8rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-fog-layer, .weather-precip-layer { animation: none !important; }
+}
