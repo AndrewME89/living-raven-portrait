@@ -1,11 +1,13 @@
 /* The only file most installations need to edit. Times are deliberately broad. */
 var CONFIG = Object.freeze({
   /* Bump this value whenever replacing an asset without changing its filename. */
-  assetVersion: '2026-09-03-2',
+  assetVersion: '2026-09-08-1',
   videoRoot: 'assets/video/',
   videoFiles: Object.freeze({
     adjust: 'Adjust.mp4',
     blink: 'Blink.mp4',
+    dance: 'Dance.mp4',
+    danceHardstyle: 'Dance2_Hardstylez.mp4',
     doubleBlink: 'DoubleBlink.mp4',
     flightAway: 'Away.mp4',
     flightReturn: 'Return.mp4',
@@ -18,12 +20,8 @@ var CONFIG = Object.freeze({
     settle: 'Settle.mp4',
     wingStretch: 'Stretch.mp4'
   }),
-  /* Keep rendered-but-unapproved clips addressable without allowing playback. */
-  disabledClips: Object.freeze({
-    doubleBlink: true,
-    lightning: true,
-    mausoleum: true
-  }),
+  /* Add a media key here only when a render must remain addressable but unavailable. */
+  disabledClips: Object.freeze({}),
   mausoleumSound: 'assets/audio/Raven Animation – Mausoleum.mp4',
   /* Optional licensed thunder file. Null uses the built-in Web Audio thunder. */
   lightningSound: null,
@@ -44,6 +42,8 @@ var CONFIG = Object.freeze({
   wingStretchMaxMinutes: 60,
   headMoveMinMinutes: 10,
   headMoveMaxMinutes: 40,
+  danceMinHours: 6,
+  danceMaxHours: 12,
   flightAwayMinHours: 2,
   flightAwayMaxHours: 4,
   flightReturnMinSeconds: 30,
@@ -52,6 +52,9 @@ var CONFIG = Object.freeze({
   flightAwayCleanFrameSeconds: 44.45,
   longQuietChance: 0.12,
   longQuietMultiplier: 1.8,
+  museumFinishEnabled: true,
+  museumGlazeOpacity: 0.055,
+  museumVignetteOpacity: 0.16,
   videoVolume: 0.22,
   debug: false
 });
