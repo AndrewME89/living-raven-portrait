@@ -11,8 +11,12 @@ body { background: #050707; }
   --museum-vignette-opacity: .16;
   --weather-overcast-opacity: 0;
   --weather-fog-opacity: 0;
-  --weather-rain-opacity: 0;
-  --weather-snow-opacity: 0;
+  --weather-fog-far-opacity: 0;
+  --weather-fog-near-opacity: 0;
+  --weather-rain-far-opacity: 0;
+  --weather-rain-near-opacity: 0;
+  --weather-snow-far-opacity: 0;
+  --weather-snow-near-opacity: 0;
   --weather-fog-far-duration: 145s;
   --weather-fog-near-duration: 105s;
   --weather-rain-far-duration: 1.35s;
@@ -37,8 +41,8 @@ body { background: #050707; }
 .weather-precipitation { z-index: 9; }
 .weather-fog-layer, .weather-precip-layer { position: absolute; pointer-events: none; }
 .weather-fog-layer { inset: -8% -12%; background-position: center; background-repeat: no-repeat; background-size: cover; will-change: transform, opacity; transition: opacity 3s ease; }
-.weather-fog-far { background-image: url('assets/weather/fog-far.png'); opacity: calc(var(--weather-fog-opacity) * .72); animation: weather-fog-far var(--weather-fog-far-duration) ease-in-out infinite alternate; }
-.weather-fog-near { background-image: url('assets/weather/fog-near.png'); opacity: calc(var(--weather-fog-opacity) * .92); animation: weather-fog-near var(--weather-fog-near-duration) ease-in-out infinite alternate-reverse; }
+.weather-fog-far { background-image: url('assets/weather/fog-far.png'); opacity: var(--weather-fog-far-opacity); animation: weather-fog-far var(--weather-fog-far-duration) ease-in-out infinite alternate; }
+.weather-fog-near { background-image: url('assets/weather/fog-near.png'); opacity: var(--weather-fog-near-opacity); animation: weather-fog-near var(--weather-fog-near-duration) ease-in-out infinite alternate-reverse; }
 .weather-precip-layer { inset: -20% -10%; opacity: 0; will-change: background-position, opacity; transition: opacity 1.8s ease; }
 
 /* Drizzle/rain/storm use two depths: sparse distant streaks and brighter near streaks. */
@@ -49,7 +53,7 @@ body { background: #050707; }
     repeating-linear-gradient(112deg, transparent 0 26px, rgba(197,214,218,.34) 27px 28px, transparent 29px 66px),
     repeating-linear-gradient(112deg, transparent 0 43px, rgba(169,190,196,.24) 44px 45px, transparent 46px 96px);
   background-size: 130px 180px, 190px 250px;
-  opacity: calc(var(--weather-rain-opacity) * .62);
+  opacity: var(--weather-rain-far-opacity);
   animation: weather-rain-far var(--weather-rain-far-duration) linear infinite;
 }
 .portrait[data-weather-kind='drizzle'] .weather-precip-near,
@@ -59,7 +63,7 @@ body { background: #050707; }
     repeating-linear-gradient(112deg, transparent 0 39px, rgba(221,232,234,.42) 40px 41px, transparent 42px 105px),
     repeating-linear-gradient(112deg, transparent 0 67px, rgba(191,208,212,.28) 68px 70px, transparent 71px 142px);
   background-size: 170px 240px, 240px 330px;
-  opacity: var(--weather-rain-opacity);
+  opacity: var(--weather-rain-near-opacity);
   animation: weather-rain-near var(--weather-rain-near-duration) linear infinite;
 }
 
@@ -70,7 +74,7 @@ body { background: #050707; }
     radial-gradient(circle, rgba(206,219,216,.4) 0 1.2px, transparent 1.9px);
   background-size: 58px 58px, 91px 91px;
   background-position: 0 0, 23px 31px;
-  opacity: calc(var(--weather-snow-opacity) * .64);
+  opacity: var(--weather-snow-far-opacity);
   animation: weather-snow-far var(--weather-snow-far-duration) linear infinite;
 }
 .portrait[data-weather-kind='snow'] .weather-precip-near {
@@ -79,7 +83,7 @@ body { background: #050707; }
     radial-gradient(circle, rgba(215,227,223,.56) 0 2px, transparent 2.8px);
   background-size: 84px 84px, 127px 127px;
   background-position: 17px 9px, 61px 47px;
-  opacity: var(--weather-snow-opacity);
+  opacity: var(--weather-snow-near-opacity);
   animation: weather-snow-near var(--weather-snow-near-duration) linear infinite;
 }
 
