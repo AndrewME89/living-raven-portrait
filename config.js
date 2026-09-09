@@ -52,6 +52,9 @@ var CONFIG = Object.freeze({
   flightAwayCleanFrameSeconds: 44.45,
   longQuietChance: 0.12,
   longQuietMultiplier: 1.8,
+  museumFinishEnabled: true,
+  museumGlazeOpacity: 0.055,
+  museumVignetteOpacity: 0.16,
   videoVolume: 0.22,
   debug: false
 });

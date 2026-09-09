@@ -161,11 +161,12 @@
   function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
+  function applyMuseumFinish(){portrait.classList.toggle('museum-finish-disabled',!CONFIG.museumFinishEnabled);portrait.style.setProperty('--museum-glaze-opacity',CONFIG.museumGlazeOpacity);portrait.style.setProperty('--museum-vignette-opacity',CONFIG.museumVignetteOpacity);}
 
   gate.addEventListener('click',unlock);
   document.addEventListener('keydown',function(e){if(e.key==='Enter')unlock();if(e.key==='d'||e.key==='D'){if(!debugBuilt)buildDebug();else panel.hidden=!panel.hidden;}});
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&soundUnlocked)requestWakeLock();});
-  if(debugRequested())buildDebug();
+  applyMuseumFinish();if(debugRequested())buildDebug();
   BEHAVIOURS.forEach(scheduleDue);setState('ACTIVE');runNormalLoop();
   window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles};
 }());
