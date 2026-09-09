@@ -68,6 +68,53 @@ All 15 portrait clips are enabled. Double Blink remains an occasional automatic 
 
 ### Replacing assets on GitHub Pages
 
+Before replacing the original portrait clips, generate the colour-corrected set from
+the repository root:
+
+```bash
+python3 tools/normalize-colour.py
+```
+
+The utility reads all 15 originals from `assets/video/` and writes H.264 copies to
+`assets/video-corrected/`; it never edits the source files. It refuses to replace an
+existing corrected file unless `--overwrite` is supplied. **Do not replace the
+original clips until every corrected clip has been visually compared and approved.**
+Because correction requires H.264 re-encoding, the frames are not byte-identical and
+the output is not lossless.
+
+Use this target-device review checklist:
+
+- Compare the corrected and original first and last frames.
+- Watch every animation in full for clipping, banding, crushed shadows, colour casts,
+  cadence changes, and audio synchronization.
+- Inspect `Return.mp4` especially carefully because its gains are materially larger.
+- Exercise Flight Away and Flight Return as a pair.
+- Verify the sound behavior of Lightning and Mausoleum.
+- Confirm that both Dance variants remain geometrically and temporally unchanged.
+- Test the final replacements on Fire TV/Silk.
+
+For each filename, use `ffprobe` to compare width, height, average frame rate,
+duration, pixel format, and audio-stream presence. For example:
+
+```bash
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video/Adjust.mp4
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video-corrected/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 assets/video/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 \
+  assets/video-corrected/Adjust.mp4
+```
+
+Repeat those commands for all clips (an empty audio result means no audio stream).
+After approved corrected files replace the originals, increment `CONFIG.assetVersion`
+in `config.js` **and** the `config.js` and `app.js` cache-busting query values in
+`index.html` in the same commit.
+
 GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any MP4 or audio asset, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
 
 After deploying, open `https://YOUR-PAGES-URL/?debug=1`, force one affected clip, and confirm its loading message contains the configured filename and new `?v=` value. Asset paths on GitHub Pages are case-sensitive, including the `.mp4` extension. If the old asset remains temporarily, reload after GitHub Pages finishes publishing the commit; changing `assetVersion` handles browser/CDN asset caching but cannot make an unfinished Pages deployment complete sooner.
