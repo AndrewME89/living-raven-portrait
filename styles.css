@@ -17,6 +17,7 @@ body { background: #050707; }
   --weather-rain-near-opacity: 0;
   --weather-snow-far-opacity: 0;
   --weather-snow-near-opacity: 0;
+  --weather-cloud-duration: 120s;
   --weather-fog-far-duration: 145s;
   --weather-fog-near-duration: 105s;
   --weather-rain-far-duration: 1.35s;
@@ -37,6 +38,9 @@ body { background: #050707; }
 /* Weather is composed as artwork layers rather than a single flat tint. */
 .weather-overcast, .weather-fog, .weather-precipitation { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .weather-overcast { z-index: 7; background: rgba(7,16,18,var(--weather-overcast-opacity)); transition: background-color 2.5s ease; }
+.weather-overcast::before, .weather-overcast::after { content: ''; position: absolute; inset: -14%; pointer-events: none; opacity: var(--weather-overcast-opacity); will-change: transform, opacity; }
+.weather-overcast::before { background: radial-gradient(ellipse at 28% 42%, rgba(0,4,6,.62) 0 18%, rgba(8,15,17,.32) 38%, transparent 67%); animation: weather-cloud-shadow var(--weather-cloud-duration) ease-in-out infinite alternate; }
+.weather-overcast::after { background: radial-gradient(ellipse at 72% 55%, rgba(0,3,5,.5) 0 16%, rgba(10,17,19,.24) 36%, transparent 64%); animation: weather-cloud-shadow var(--weather-cloud-duration) ease-in-out infinite alternate-reverse; }
 .weather-fog { z-index: 8; }
 .weather-precipitation { z-index: 9; }
 .weather-fog-layer, .weather-precip-layer { position: absolute; pointer-events: none; }
@@ -92,6 +96,11 @@ body { background: #050707; }
 .portrait[data-weather-windy='true'] .weather-fog-near { animation-timing-function: linear; }
 .portrait[data-weather-windy='true'] .weather-precip-layer { transform: skewX(-4deg); }
 
+@keyframes weather-cloud-shadow {
+  0% { transform: translate3d(-4%, 0, 0) scale(1.02); }
+  50% { transform: translate3d(1%, 1%, 0) scale(1.04); }
+  100% { transform: translate3d(5%, -1%, 0) scale(1.02); }
+}
 @keyframes weather-fog-far {
   0% { transform: translate3d(-4%, 1%, 0) scale(1.02); }
   50% { transform: translate3d(1%, -1%, 0) scale(1.035); }
@@ -135,5 +144,5 @@ body { background: #050707; }
 .debug-panel p { margin: .75rem 0 0; color: #8f9d96; font-size: .8rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .weather-fog-layer, .weather-precip-layer { animation: none !important; }
+  .weather-overcast::before, .weather-overcast::after, .weather-fog-layer, .weather-precip-layer { animation: none !important; }
 }
