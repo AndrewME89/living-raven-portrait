@@ -101,7 +101,7 @@
       function complete(){
         if(finished)return;
         finished=true;cleanup();
-        if(name==='flightAway'){busy=false;resolve(name);return;}
+        if(name==='flightAway'||name==='flightReturn'){slot.video.pause();busy=false;resolve(name);return;}
         seekToIdleFrame(slot).then(function(){busy=false;resolve(name);}).catch(function(error){busy=false;reject(error);});
       }
       function holdCleanAwayFrame(){
