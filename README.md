@@ -36,9 +36,9 @@ assets/video/Settle.mp4
 assets/video/Stretch.mp4
 ```
 
-Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, or canvas copy. An inline SVG `feColorMatrix` applies the measured per-channel RGB correction for each clip. Static overlays then add a restrained museum finish: a neutral-cool dark glaze softens monitor harshness, a broad vignette gently settles the edges, and a small repeating monochrome texture approximates GIMP's **Apply Canvas** filter at Depth 3.
+Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, canvas copy, or colour adjustment. Static overlays add a restrained museum finish to the artwork: a neutral-cool dark glaze softens monitor harshness, a broad vignette gently settles the edges, and a small repeating monochrome texture approximates GIMP's **Apply Canvas** filter at Depth 3. These are decorative CSS layers, not an HTML canvas or a copy of the video frame.
 
-The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, and blend modes. The only video filter is the static per-clip SVG colour matrix; it does not resize, regenerate, or copy video frames. The museum glaze, vignette, and existing canvas weave are also completely static and use only ordinary alpha compositing. All artwork layers remain below the sound gate, debug badge, and debug panel, so the UI stays clear and clickable. These effects can still force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, so prolonged target-device testing remains essential. Slots switch with `visibility`, and the inactive slot releases its media source immediately after every swap so only one decoder remains allocated during playback.
+The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, filters, and blend modes. The museum glaze, vignette, and existing canvas weave are completely static and use only ordinary alpha compositing. The 8×8 grayscale SVG weave tile stays small, rasterizes to only 64 pixels, and has no animation, event handling, filter, or blend mode. All three layers sit inside `.scene`, above the video slots but below the sound gate, debug badge, and debug panel, so the UI remains clear and clickable. These effects can still force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, producing block-shaped corruption even when the source file is intact. Slots switch with `visibility`, and the inactive slot releases its media source immediately after every swap so only one decoder remains allocated during playback.
 
 Before deploying unattended, run prolonged playback on the target Fire TV/Silk device with the overlays enabled. Exercise fullscreen, both video slots, the sound gate, and debug mode, and watch especially for rectangular or block-shaped corruption during clip transitions. If corruption appears, do not add `mix-blend-mode` or further runtime effects: bake the same canvas treatment into every source video, remove the `.scene::after` weave overlay, disable the museum finish, and retest the complete clip set. Desktop-browser testing cannot validate the Fire TV hardware-decoding path.
 
@@ -64,11 +64,56 @@ ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac 
 
 Edit the single `CONFIG` object in `config.js`. All replaceable background paths and video filenames live at the top of that object; there are no asset filenames to keep synchronized in the HTML, CSS, or player code. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
 
-The museum finish is enabled by default. Set `museumFinishEnabled` to `false` to remove the glaze and vignette while retaining the canvas weave and per-clip colour matrices. Adjust `museumGlazeOpacity` and `museumVignetteOpacity` conservatively to tune the overall darkening and edge falloff; the defaults are intended to make the portrait feel less backlit without muddying the artwork. These museum-finish values control static overlay alpha only and do not add another filter, blend mode, or video-frame processing step.
-
 All 15 portrait clips are enabled. Double Blink remains an occasional automatic Blink variation, while Lightning and Mausoleum retain their special sound handling and are available through the debug controls and public trigger API. Dance is one rare scheduled behavior with a single due time; when it becomes due, the scheduler randomly chooses either `Dance.mp4` or `Dance2_Hardstylez.mp4`. Add a media key to `disabledClips` only when a render must remain mapped but temporarily unavailable.
 
 ### Replacing assets on GitHub Pages
+
+Before replacing the original portrait clips, generate the colour-corrected set from
+the repository root:
+
+```bash
+python3 tools/normalize-colour.py
+```
+
+The utility reads all 15 originals from `assets/video/` and writes H.264 copies to
+`assets/video-corrected/`; it never edits the source files. It refuses to replace an
+existing corrected file unless `--overwrite` is supplied. **Do not replace the
+original clips until every corrected clip has been visually compared and approved.**
+Because correction requires H.264 re-encoding, the frames are not byte-identical and
+the output is not lossless.
+
+Use this target-device review checklist:
+
+- Compare the corrected and original first and last frames.
+- Watch every animation in full for clipping, banding, crushed shadows, colour casts,
+  cadence changes, and audio synchronization.
+- Inspect `Return.mp4` especially carefully because its gains are materially larger.
+- Exercise Flight Away and Flight Return as a pair.
+- Verify the sound behavior of Lightning and Mausoleum.
+- Confirm that both Dance variants remain geometrically and temporally unchanged.
+- Test the final replacements on Fire TV/Silk.
+
+For each filename, use `ffprobe` to compare width, height, average frame rate,
+duration, pixel format, and audio-stream presence. For example:
+
+```bash
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video/Adjust.mp4
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video-corrected/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 assets/video/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 \
+  assets/video-corrected/Adjust.mp4
+```
+
+Repeat those commands for all clips (an empty audio result means no audio stream).
+After approved corrected files replace the originals, increment `CONFIG.assetVersion`
+in `config.js` **and** the `config.js` and `app.js` cache-busting query values in
+`index.html` in the same commit.
 
 GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any MP4 or audio asset, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
 

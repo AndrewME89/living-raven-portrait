@@ -5,9 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#090d0d">
   <title>Haunted Raven Portrait</title>
-  <link rel="stylesheet" href="styles.css?v=2026-09-09-3">
+  <link rel="stylesheet" href="styles.css?v=2026-09-09-1">
 </head>
 <body>
+  <svg class="color-matrices" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="cm-adjust"><feColorMatrix type="matrix" values="0.99330 0 0 0 0  0 0.99428 0 0 0  0 0 0.98611 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-away"><feColorMatrix type="matrix" values="0.97543 0 0 0 0  0 0.97304 0 0 0  0 0 0.99866 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-blink"><feColorMatrix type="matrix" values="1.03299 0 0 0 0  0 1.03462 0 0 0  0 0 1.01568 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-dance"><feColorMatrix type="matrix" values="1.03970 0 0 0 0  0 1.04322 0 0 0  0 0 1.04083 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-dance-hardstyle"><feColorMatrix type="matrix" values="0.98737 0 0 0 0  0 0.98935 0 0 0  0 0 0.99228 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-double-blink"><feColorMatrix type="matrix" values="0.97458 0 0 0 0  0 0.99159 0 0 0  0 0 1.00350 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-lightning"><feColorMatrix type="matrix" values="1.02148 0 0 0 0  0 1.01856 0 0 0  0 0 1.02445 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-look-left"><feColorMatrix type="matrix" values="1.01122 0 0 0 0  0 1.01519 0 0 0  0 0 1.00268 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-look-viewer"><feColorMatrix type="matrix" values="1.00324 0 0 0 0  0 1.01759 0 0 0  0 0 1.01756 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-mausoleum"><feColorMatrix type="matrix" values="0.96123 0 0 0 0  0 0.98154 0 0 0  0 0 1.00359 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-preen"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-return"><feColorMatrix type="matrix" values="0.85953 0 0 0 0  0 0.86613 0 0 0  0 0 0.88704 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-ruffle"><feColorMatrix type="matrix" values="0.96576 0 0 0 0  0 0.97561 0 0 0  0 0 0.98310 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-settle"><feColorMatrix type="matrix" values="1.06378 0 0 0 0  0 1.06057 0 0 0  0 0 1.05714 0 0  0 0 0 1 0"/></filter>
+      <filter id="cm-stretch"><feColorMatrix type="matrix" values="1.04339 0 0 0 0  0 1.05213 0 0 0  0 0 1.06251 0 0  0 0 0 1 0"/></filter>
+    </defs>
+  </svg>
   <main id="portrait" class="portrait" data-state="ACTIVE" aria-label="A living portrait of a raven in a cemetery">
     <svg class="color-matrices" width="0" height="0" style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden;pointer-events:none" aria-hidden="true" focusable="false">
       <defs>
@@ -39,7 +58,7 @@
       <p id="debugStatus" aria-live="polite">Resting</p>
     </aside>
   </main>
-  <script src="config.js?v=2026-09-09-1"></script>
-  <script src="app.js?v=2026-09-09-3"></script>
+  <script src="config.js?v=2026-09-08-1"></script>
+  <script src="app.js?v=2026-09-08-1"></script>
 </body>
 </html>
