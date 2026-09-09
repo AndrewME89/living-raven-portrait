@@ -63,8 +63,12 @@ var CONFIG = Object.freeze({
   weatherOvercastEnabled: true,
   weatherWindBehaviourEnabled: true,
   weatherStormLightningEnabled: true,
-  weatherFogMaxOpacity: 0.20,
-  weatherOvercastMaxOpacity: 0.14,
+  /* Match the earlier Claude-Code treatment: fog intensity 0.7, then
+     far/near painted layers are scaled to 70% / 55% of that value. */
+  weatherFogMaxOpacity: 0.70,
+  /* Overcast is deliberately restrained so weather states do not all read
+     as the same grey wash. */
+  weatherOvercastMaxOpacity: 0.10,
   weatherWindRuffleThresholdKmh: 30,
   videoVolume: 0.22,
   debug: false
