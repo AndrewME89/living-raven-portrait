@@ -8,6 +8,12 @@
     ['dance','Dance'], ['danceHardstyle','Dance (Hardstylez)'],
     ['lightning','Lightning + thunder'], ['mausoleum','Mausoleum + sound']
   ];
+  var WEATHER_ACTIONS = [
+    ['weather:clear','Weather: Clear'], ['weather:cloudy','Weather: Overcast'],
+    ['weather:fog','Weather: Fog'], ['weather:rain','Weather: Rain'],
+    ['weather:storm','Weather: Storm'], ['weather:windy','Weather: Windy'],
+    ['weather:live','Weather: Live']
+  ];
   var BEHAVIOURS = [
     { name:'blink', unit:1000, min:'blinkMinSeconds', max:'blinkMaxSeconds' },
     { name:'adjust', unit:60000, min:'adjustMinMinutes', max:'adjustMaxMinutes' },
@@ -20,10 +26,10 @@
     { name:'flight', unit:3600000, min:'flightAwayMinHours', max:'flightAwayMaxHours' }
   ];
   var portrait=document.getElementById('portrait'), gate=document.getElementById('soundGate');
-  var panel=document.getElementById('debugPanel'), status=document.getElementById('debugStatus');
+  var panel=document.getElementById('debugPanel'), status=document.getElementById('debugStatus'), weatherStatus=document.getElementById('weatherStatus');
   var soundUnlocked=false, audioContext=null, wakeLock=null, wakeLockRequest=null, eventAudio=null, eventTimer=null;
-  var actionTimer=null, busy=false, away=false, debugBuilt=false;
-  var dueTimes={}, generation=0;
+  var actionTimer=null, busy=false, away=false, priming=false, debugBuilt=false;
+  var dueTimes={}, generation=0, weatherState=null, ruffleDelayMultiplier=1;
 
   function assetUrl(path) { return path+(path.indexOf('?')<0?'?':'&')+'v='+encodeURIComponent(CONFIG.assetVersion); }
   function rand(min,max) { return min+Math.random()*(max-min); }
@@ -129,7 +135,7 @@
       slot.video.play().then(function(){announce('Playing '+name);}).catch(function(error){fail(error);});
     });
   }
-  function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
+  function scheduleDue(item){var delay=rand(CONFIG[item.min],CONFIG[item.max])*item.unit;if(item.name==='ruffle')delay*=ruffleDelayMultiplier;if(Math.random()<CONFIG.longQuietChance)delay*=CONFIG.longQuietMultiplier;dueTimes[item.name]=Date.now()+delay;}
   function nextPlan(){var item=BEHAVIOURS[0];BEHAVIOURS.forEach(function(value){if(dueTimes[value.name]<dueTimes[item.name])item=value;});return {behaviour:item,name:clipName(item.name),due:dueTimes[item.name]};}
   function scheduleRetry(error,token){
     console.error('[Haunted Portrait]',error);busy=false;clearTimeout(actionTimer);
@@ -159,7 +165,7 @@
   }
 
   function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
-  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
+  function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.concat(WEATHER_ACTIONS).forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(item[0].indexOf('weather:')!==0&&!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}if(action.indexOf('weather:')===0){if(window.Weather){if(action==='weather:live')window.Weather.useLive();else window.Weather.force(action.slice(8));}return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
   function applyMuseumFinish(){portrait.classList.toggle('museum-finish-disabled',!CONFIG.museumFinishEnabled);portrait.style.setProperty('--museum-glaze-opacity',CONFIG.museumGlazeOpacity);portrait.style.setProperty('--museum-vignette-opacity',CONFIG.museumVignetteOpacity);}
@@ -169,5 +175,5 @@
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&soundUnlocked)requestWakeLock();});
   applyMuseumFinish();if(debugRequested())buildDebug();
   BEHAVIOURS.forEach(scheduleDue);setState('ACTIVE');runNormalLoop();
-  window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles};
+  window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles,setWeather:setWeather,getWeather:getWeather,refreshWeather:refreshWeather,triggerWeatherLightning:triggerWeatherLightning};
 }());

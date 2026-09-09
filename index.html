@@ -31,12 +31,15 @@
     <div class="scene" id="scene">
       <div class="video-slot" id="videoSlotA" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video></div>
       <div class="video-slot" id="videoSlotB" aria-hidden="true"><video class="raven-video" preload="auto" playsinline></video></div>
+      <div class="weather-overcast" aria-hidden="true"></div>
+      <div class="weather-fog" aria-hidden="true"></div>
     </div>
     <button class="sound-gate" id="soundGate" type="button">Awaken portrait</button>
     <aside class="debug-panel" id="debugPanel" hidden aria-label="Portrait debug controls">
       <div class="debug-heading"><span>Portrait controls</span><button type="button" data-action="fullscreen">Full screen</button></div>
       <div id="debugButtons" class="debug-buttons"></div>
       <p id="debugStatus" aria-live="polite">Resting</p>
+      <p id="weatherStatus">Weather: inactive</p>
     </aside>
   </main>
   <script src="config.js?v=2026-09-08-1"></script>

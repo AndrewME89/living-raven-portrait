@@ -136,9 +136,11 @@ The public integration seam is `window.HauntedPortrait`:
 ```js
 HauntedPortrait.setState('IDLE'); // ACTIVE, IDLE, SLEEP, or AWAY
 HauntedPortrait.trigger('settle');
+HauntedPortrait.getWeather();
+HauntedPortrait.refreshWeather();
 ```
 
-State changes also emit a `portraitstatechange` browser event. Version 1 does not connect to weather, occupancy, Home Assistant, or a backend.
+`HauntedPortrait.setWeather(state)` is the integration seam used by `weather.js`; `getWeather()` returns a copy of the applied normalized state. The portrait does not connect to occupancy, Home Assistant, or a backend.
 
 ## Fire TV / Amazon Silk
 
@@ -160,4 +162,4 @@ Timers schedule only their next event. A failed hidden clip is rescheduled witho
 
 Open `?debug=1` (or use either method above) and use the panel to force each clip or flight sequence. The status line reports missing files. Browser developer tools will show the exact failed asset request. To add a new animation, add its filename to `CONFIG.videoFiles`, optionally add a scheduler entry, and expose a debug button in `app.js`.
 
-Known V1 limitations: no generated substitute for missing artwork, no weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
+Known V1 limitations: no generated substitute for missing artwork, no animated weather or separate ambient-audio library, no automatic fullscreen (browsers require a gesture), and no smart-home integrations. These are intentional phase boundaries.
