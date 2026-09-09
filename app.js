@@ -65,7 +65,7 @@
     resetSlot(standby);
   }
   function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.removeAttribute('data-clip');slot.video.load();slot.name=null; }
-  function primeAndSwap(name) { resetSlot(standby);priming=true;return prime(standby,name).then(function(){swapToStandby();priming=false;},function(error){priming=false;throw error;}); }
+  function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
   function requestWakeLock(){
@@ -169,22 +169,6 @@
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
   function applyMuseumFinish(){portrait.classList.toggle('museum-finish-disabled',!CONFIG.museumFinishEnabled);portrait.style.setProperty('--museum-glaze-opacity',CONFIG.museumGlazeOpacity);portrait.style.setProperty('--museum-vignette-opacity',CONFIG.museumVignetteOpacity);}
-  function weatherNumber(value,min,max){value=Number(value);if(!isFinite(value))value=0;return Math.max(min,Math.min(max,value));}
-  function setWeather(state){
-    if(!state)return;
-    weatherState={kind:state.kind||'clear',cloudCover:weatherNumber(state.cloudCover,0,100),precipitation:weatherNumber(state.precipitation,0,Infinity),windSpeed:weatherNumber(state.windSpeed,0,Infinity),isDay:state.isDay===1||state.isDay===true,weatherCode:weatherNumber(state.weatherCode,0,999),temperature:state.temperature==null?null:Number(state.temperature),lastUpdated:state.lastUpdated||null};
-    var wet=weatherState.kind==='drizzle'||weatherState.kind==='rain'||weatherState.kind==='storm'||weatherState.kind==='snow';
-    var cloudFactor=weatherState.cloudCover/100;if(wet)cloudFactor=Math.max(cloudFactor,.65);
-    var overcast=CONFIG.weatherOvercastEnabled?cloudFactor*CONFIG.weatherOvercastMaxOpacity:0;
-    var fog=CONFIG.weatherFogEnabled&&weatherState.kind==='fog'?CONFIG.weatherFogMaxOpacity:0;
-    portrait.style.setProperty('--weather-overcast-opacity',weatherNumber(overcast,0,1));portrait.style.setProperty('--weather-fog-opacity',weatherNumber(fog,0,1));
-    ruffleDelayMultiplier=CONFIG.weatherWindBehaviourEnabled&&weatherState.windSpeed>=CONFIG.weatherWindRuffleThresholdKmh ? .6 : 1;
-    var updated=weatherState.lastUpdated?new Date(weatherState.lastUpdated).toLocaleTimeString():'forced';
-    weatherStatus.textContent='Weather: '+weatherState.kind+' · code '+weatherState.weatherCode+' · cloud '+Math.round(weatherState.cloudCover)+'% · wind '+Math.round(weatherState.windSpeed)+' km/h · precip '+weatherState.precipitation+' mm · '+updated;
-  }
-  function getWeather(){if(!weatherState)return null;var copy={};Object.keys(weatherState).forEach(function(key){copy[key]=weatherState[key];});return copy;}
-  function refreshWeather(){if(window.Weather&&window.Weather.refresh)return window.Weather.refresh();return Promise.resolve(null);}
-  function triggerWeatherLightning(){if(busy||away||priming||!clipEnabled('lightning'))return false;force('lightning');return true;}
 
   gate.addEventListener('click',unlock);
   document.addEventListener('keydown',function(e){if(e.key==='Enter')unlock();if(e.key==='d'||e.key==='D'){if(!debugBuilt)buildDebug();else panel.hidden=!panel.hidden;}});

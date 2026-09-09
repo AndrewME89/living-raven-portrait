@@ -55,17 +55,6 @@ var CONFIG = Object.freeze({
   museumFinishEnabled: true,
   museumGlazeOpacity: 0.055,
   museumVignetteOpacity: 0.16,
-  weatherEnabled: true,
-  latitude: null,
-  longitude: null,
-  weatherUpdateMinutes: 15,
-  weatherFogEnabled: true,
-  weatherOvercastEnabled: true,
-  weatherWindBehaviourEnabled: true,
-  weatherStormLightningEnabled: true,
-  weatherFogMaxOpacity: 0.20,
-  weatherOvercastMaxOpacity: 0.14,
-  weatherWindRuffleThresholdKmh: 30,
   videoVolume: 0.22,
   debug: false
 });

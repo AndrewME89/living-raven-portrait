@@ -36,15 +36,15 @@ assets/video/Settle.mp4
 assets/video/Stretch.mp4
 ```
 
-Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, or canvas copy. An inline SVG `feColorMatrix` applies the measured per-channel RGB correction for each clip. Static overlays then add a restrained museum finish: a neutral-cool dark glaze softens monitor harshness, a broad vignette gently settles the edges, and a small repeating monochrome texture approximates GIMP's **Apply Canvas** filter at Depth 3.
+Every clip is displayed directly by its video element, with no still image, background image, shader, chroma key, pixel removal, canvas copy, or colour adjustment. Static overlays add a restrained museum finish to the artwork: a neutral-cool dark glaze softens monitor harshness, a broad vignette gently settles the edges, and a small repeating monochrome texture approximates GIMP's **Apply Canvas** filter at Depth 3. These are decorative CSS layers, not an HTML canvas or a copy of the video frame.
 
-The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, and blend modes. The only video filter is the static per-clip SVG colour matrix; it does not resize, regenerate, or copy video frames. The museum glaze, vignette, and existing canvas weave are also completely static and use only ordinary alpha compositing. All artwork layers remain below the sound gate, debug badge, and debug panel, so the UI stays clear and clickable. These effects can still force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, so prolonged target-device testing remains essential. Slots switch with `visibility`, and the inactive slot releases its media source immediately after every swap so only one decoder remains allocated during playback.
+The video plane deliberately avoids ancestor transforms, animated burn-in drift, opacity-based slot switching, filters, and blend modes. The museum glaze, vignette, and existing canvas weave are completely static and use only ordinary alpha compositing. The 8×8 grayscale SVG weave tile stays small, rasterizes to only 64 pixels, and has no animation, event handling, filter, or blend mode. All three layers sit inside `.scene`, above the video slots but below the sound gate, debug badge, and debug panel, so the UI remains clear and clickable. These effects can still force hardware-decoded video through an extra GPU compositing path on Silk and other embedded Chromium browsers, producing block-shaped corruption even when the source file is intact. Slots switch with `visibility`, and the inactive slot releases its media source immediately after every swap so only one decoder remains allocated during playback.
 
 Before deploying unattended, run prolonged playback on the target Fire TV/Silk device with the overlays enabled. Exercise fullscreen, both video slots, the sound gate, and debug mode, and watch especially for rectangular or block-shaped corruption during clip transitions. If corruption appears, do not add `mix-blend-mode` or further runtime effects: bake the same canvas treatment into every source video, remove the `.scene::after` weave overlay, disable the museum finish, and retest the complete clip set. Desktop-browser testing cannot validate the Fire TV hardware-decoding path.
 
 Encode MP4 as H.264/AAC for broad Silk compatibility. Lightning and any future Mausoleum clip should be 864×480 at 24 fps.
 
-Lightning and Mausoleum are played as complete, opaque video frames without clip-specific treatment beyond their colour matrices; they receive the same shared museum, weather, and canvas-weave layers as the other clips. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
+Lightning and Mausoleum are played as complete, opaque video frames without clip-specific CSS visual treatment; they receive only the shared museum-finish and canvas-weave layers. The sound-bearing Mausoleum render is used only as a separate audio source, configured by `mausoleumSound`, so its lower-quality duplicate picture is never displayed.
 
 Lightning audio does not require another asset: after **Awaken portrait** is selected, Web Audio synthesizes a restrained low thunder roll and starts it at `lightningThunderDelayRatio` of the clip duration. To use a sourced/licensed recording later, set `lightningSound` to its path; the same timing and `lightningThunderVolume` are retained. Keeping the default procedural sound avoids shipping an unlicensed sample and avoids another network dependency.
 
@@ -64,19 +64,56 @@ ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -movflags +faststart -c:a aac 
 
 Edit the single `CONFIG` object in `config.js`. All replaceable background paths and video filenames live at the top of that object; there are no asset filenames to keep synchronized in the HTML, CSS, or player code. Every behavior has its own randomized min/max range. `longQuietChance` occasionally stretches a scheduled delay, preventing a recognizable rhythm.
 
-The museum finish is enabled by default. Set `museumFinishEnabled` to `false` to remove the glaze and vignette while retaining the canvas weave and per-clip colour matrices. Adjust `museumGlazeOpacity` and `museumVignetteOpacity` conservatively to tune the overall darkening and edge falloff; the defaults are intended to make the portrait feel less backlit without muddying the artwork. These museum-finish values control static overlay alpha only and do not add another filter, blend mode, or video-frame processing step.
-
 All 15 portrait clips are enabled. Double Blink remains an occasional automatic Blink variation, while Lightning and Mausoleum retain their special sound handling and are available through the debug controls and public trigger API. Dance is one rare scheduled behavior with a single due time; when it becomes due, the scheduler randomly chooses either `Dance.mp4` or `Dance2_Hardstylez.mp4`. Add a media key to `disabledClips` only when a render must remain mapped but temporarily unavailable.
 
-### Weather
-
-The optional weather integration polls Open-Meteo current conditions without an API key. Set numeric `latitude` and `longitude` values in `config.js` to activate it; no location is assumed. With either coordinate left as `null`, weather remains inert, logs a helpful message, and the portrait continues normally. `weatherEnabled` is the master switch and `weatherUpdateMinutes` controls the normal polling interval (15 minutes by default).
-
-Phase 1 deliberately uses only two static artwork overlays. Cloud cover controls a subtle dark overcast layer up to `weatherOvercastMaxOpacity`; WMO fog codes enable a soft fog veil up to `weatherFogMaxOpacity`. Rain, drizzle, snow, and storm conditions are classified but animated rain is intentionally deferred. Storms schedule occasional calls to the existing Lightning clip, and skip it whenever playback, priming, or Flight is in progress. Wind above `weatherWindRuffleThresholdKmh` shortens only newly scheduled Ruffle delays without mutating frozen `CONFIG` or interrupting an action.
-
-The weather layers use ordinary alpha compositing between the videos and museum finish. They do not affect the sound gate or debug UI and add no weather CSS filter, blend mode, canvas, particle system, or video decoder. A failed request retains the last successfully applied state and waits for the next normal poll; before the first success, the scene stays neutral. As with the other artwork layers, validate prolonged fullscreen playback on the target Fire TV/Silk device.
-
 ### Replacing assets on GitHub Pages
+
+Before replacing the original portrait clips, generate the colour-corrected set from
+the repository root:
+
+```bash
+python3 tools/normalize-colour.py
+```
+
+The utility reads all 15 originals from `assets/video/` and writes H.264 copies to
+`assets/video-corrected/`; it never edits the source files. It refuses to replace an
+existing corrected file unless `--overwrite` is supplied. **Do not replace the
+original clips until every corrected clip has been visually compared and approved.**
+Because correction requires H.264 re-encoding, the frames are not byte-identical and
+the output is not lossless.
+
+Use this target-device review checklist:
+
+- Compare the corrected and original first and last frames.
+- Watch every animation in full for clipping, banding, crushed shadows, colour casts,
+  cadence changes, and audio synchronization.
+- Inspect `Return.mp4` especially carefully because its gains are materially larger.
+- Exercise Flight Away and Flight Return as a pair.
+- Verify the sound behavior of Lightning and Mausoleum.
+- Confirm that both Dance variants remain geometrically and temporally unchanged.
+- Test the final replacements on Fire TV/Silk.
+
+For each filename, use `ffprobe` to compare width, height, average frame rate,
+duration, pixel format, and audio-stream presence. For example:
+
+```bash
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video/Adjust.mp4
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,avg_frame_rate,duration,pix_fmt \
+  -of default=noprint_wrappers=1 assets/video-corrected/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 assets/video/Adjust.mp4
+ffprobe -v error -select_streams a \
+  -show_entries stream=index,codec_type -of csv=p=0 \
+  assets/video-corrected/Adjust.mp4
+```
+
+Repeat those commands for all clips (an empty audio result means no audio stream).
+After approved corrected files replace the originals, increment `CONFIG.assetVersion`
+in `config.js` **and** the `config.js` and `app.js` cache-busting query values in
+`index.html` in the same commit.
 
 GitHub Pages and Silk may continue displaying a cached file when its filename stays the same. After replacing any MP4 or audio asset, change `assetVersion` in `config.js` (for example from `2026-08-25-1` to `2026-08-25-2`) in the same commit. The player appends that version to every asset request, forcing the updated file to be fetched without requiring filenames to be changed throughout the project.
 
@@ -92,7 +129,7 @@ Use any of these methods, then reload if applicable:
 
 A small **DEBUG** marker at bottom-left confirms that debug mode initialized. The panel appears at top-right. Number keys 1–9 trigger common actions while the panel is visible. Debug controls are neither built nor shown in a normal session unless one of these opt-in methods is used.
 
-The debug panel includes separate **Dance** and **Dance (Hardstylez)** buttons so each render can be tested deterministically. It also reports weather kind, WMO code, cloud cover, wind, precipitation, and last successful update, with controls for **Weather: Clear**, **Overcast**, **Fog**, **Rain**, **Storm**, **Windy**, and **Live**. Forced states are debug-only; **Weather: Live** returns to the last/current Open-Meteo conditions. Temporarily unavailable renders remain visible as disabled buttons. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** use the button click as the browser's sound-unlock gesture. On a short Fire TV viewport, the panel scrolls rather than dropping actions below the screen.
+The debug panel has fourteen actions, including separate **Dance** and **Dance (Hardstylez)** buttons so each render can be tested deterministically. Temporarily unavailable renders remain visible as disabled buttons so operators can distinguish an intentional exclusion from a missing control. **Flight away + return** is one paired action; Flight Return is intentionally not exposed on its own. **Mausoleum + sound** and **Lightning + thunder** automatically use the debug button click as the browser's sound-unlock gesture, so they can be tested without first selecting **Awaken portrait**. On a short Fire TV viewport, the debug panel scrolls rather than dropping the last actions below the screen.
 
 The public integration seam is `window.HauntedPortrait`:
 
