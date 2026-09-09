@@ -42,6 +42,7 @@
   function loadVideo(slot,name) {
     if(!clipEnabled(name))return Promise.reject(new Error('Clip disabled: '+name));
     if(!CONFIG.videoFiles[name])return Promise.reject(new Error('Unknown clip: '+name));
+    slot.video.setAttribute('data-clip',name);
     slot.video.src=assetUrl(CONFIG.videoRoot+CONFIG.videoFiles[name]);slot.video.load();
     return waitEvent(slot.video,'loadeddata');
   }
@@ -57,7 +58,7 @@
     var old=active;active=standby;standby=old;
     resetSlot(standby);
   }
-  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
+  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.removeAttribute('data-clip');slot.video.load();slot.name=null; }
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
