@@ -56,6 +56,7 @@
     portrait.style.setProperty('--weather-snow-near-opacity',snowOpacity.toFixed(3));
 
     /* Two-depth motion: distant layers drift slowly, near layers move more noticeably. */
+    portrait.style.setProperty('--weather-cloud-duration',Math.max(40,120/(1+windFactor)).toFixed(1)+'s');
     portrait.style.setProperty('--weather-fog-far-duration',Math.max(55,145/(1+windFactor)).toFixed(1)+'s');
     portrait.style.setProperty('--weather-fog-near-duration',Math.max(40,105/(1+windFactor)).toFixed(1)+'s');
     portrait.style.setProperty('--weather-rain-far-duration',Math.max(.55,1.35/(1+windFactor*.35)).toFixed(2)+'s');
