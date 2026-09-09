@@ -2,13 +2,32 @@
 * { box-sizing: border-box; }
 html, body, .portrait { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: #050707; }
-.portrait { position: relative; isolation: isolate; background: #080b0b; }
-.portrait::after { content: ''; position: absolute; z-index: 31; inset: 0; pointer-events: none; background-image: url('assets/canvas-weave.svg'); background-repeat: repeat; opacity: .1; }
+.color-matrices { position: absolute; left: 0; top: 0; display: block; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.portrait { position: relative; isolation: isolate; background: #080b0b; --museum-glaze-opacity: .055; --museum-vignette-opacity: .16; }
 .scene { position: absolute; inset: 0; overflow: hidden; background: #101715; }
+.scene::before, .scene::after { position: absolute; inset: 0; pointer-events: none; }
+.scene::before { content: ''; z-index: 10; background: radial-gradient(ellipse at center, rgba(2,5,5,0) 48%, rgba(2,5,5,var(--museum-vignette-opacity)) 100%), rgba(5,10,11,var(--museum-glaze-opacity)); }
+.scene::after { content: ''; z-index: 12; background-image: url('assets/canvas-weave.svg'); background-repeat: repeat; opacity: .1; }
+.museum-finish-disabled .scene::before { display: none; }
 .video-slot, .raven-video { position: absolute; inset: 0; width: 100%; height: 100%; }
 .video-slot { z-index: 5; visibility: hidden; pointer-events: none; }
 .video-slot.is-active { visibility: visible; }
 .raven-video { display: block; object-fit: cover; object-position: center; }
+.raven-video[data-clip="adjust"] { filter: url('#cm-adjust'); }
+.raven-video[data-clip="flightAway"] { filter: url('#cm-away'); }
+.raven-video[data-clip="blink"] { filter: url('#cm-blink'); }
+.raven-video[data-clip="dance"] { filter: url('#cm-dance'); }
+.raven-video[data-clip="danceHardstyle"] { filter: url('#cm-dance-hardstyle'); }
+.raven-video[data-clip="doubleBlink"] { filter: url('#cm-double-blink'); }
+.raven-video[data-clip="lightning"] { filter: url('#cm-lightning'); }
+.raven-video[data-clip="lookLeft"] { filter: url('#cm-look-left'); }
+.raven-video[data-clip="lookViewer"] { filter: url('#cm-look-viewer'); }
+.raven-video[data-clip="mausoleum"] { filter: url('#cm-mausoleum'); }
+.raven-video[data-clip="preen"] { filter: url('#cm-preen'); }
+.raven-video[data-clip="flightReturn"] { filter: url('#cm-return'); }
+.raven-video[data-clip="ruffle"] { filter: url('#cm-ruffle'); }
+.raven-video[data-clip="settle"] { filter: url('#cm-settle'); }
+.raven-video[data-clip="wingStretch"] { filter: url('#cm-stretch'); }
 .sound-gate { position: absolute; z-index: 20; right: 2rem; bottom: 1.5rem; padding: .65rem 1rem; color: #bec8c2; border: 1px solid rgba(183,199,190,.25); border-radius: 2px; background: rgba(5,9,8,.65); font: inherit; letter-spacing: .08em; opacity: .48; transition: opacity .8s; }
 .sound-gate:focus, .sound-gate:hover { opacity: .9; }
 .sound-gate.is-hidden { opacity: 0; pointer-events: none; }
