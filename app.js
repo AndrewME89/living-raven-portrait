@@ -5,6 +5,7 @@
     ['blink','Blink'], ['doubleBlink','Double blink'], ['adjust','Adjust'], ['ruffle','Ruffle'],
     ['settle','Feather settle'], ['preen','Preen'], ['wingStretch','Wing stretch'],
     ['lookLeft','Look left'], ['lookViewer','Look viewer'], ['flight','Flight away + return'],
+    ['dance','Dance'], ['danceHardstyle','Dance (Hardstylez)'],
     ['lightning','Lightning + thunder'], ['mausoleum','Mausoleum + sound']
   ];
   var BEHAVIOURS = [
@@ -15,6 +16,7 @@
     { name:'preen', unit:60000, min:'preenMinMinutes', max:'preenMaxMinutes' },
     { name:'wingStretch', unit:60000, min:'wingStretchMinMinutes', max:'wingStretchMaxMinutes' },
     { name:'gaze', unit:60000, min:'headMoveMinMinutes', max:'headMoveMaxMinutes' },
+    { name:'dance', unit:3600000, min:'danceMinHours', max:'danceMaxHours' },
     { name:'flight', unit:3600000, min:'flightAwayMinHours', max:'flightAwayMaxHours' }
   ];
   var portrait=document.getElementById('portrait'), gate=document.getElementById('soundGate');
@@ -30,6 +32,7 @@
   function clipName(name) {
     if(name==='blink'&&clipEnabled('doubleBlink')&&Math.random()<CONFIG.doubleBlinkChance)return 'doubleBlink';
     if(name==='gaze')return Math.random()<.5?'lookLeft':'lookViewer';
+    if(name==='dance')return Math.random()<.5?'dance':'danceHardstyle';
     if(name==='flight')return 'flightAway';
     return name;
   }
@@ -39,6 +42,7 @@
   function loadVideo(slot,name) {
     if(!clipEnabled(name))return Promise.reject(new Error('Clip disabled: '+name));
     if(!CONFIG.videoFiles[name])return Promise.reject(new Error('Unknown clip: '+name));
+    slot.video.setAttribute('data-clip',name);
     slot.video.src=assetUrl(CONFIG.videoRoot+CONFIG.videoFiles[name]);slot.video.load();
     return waitEvent(slot.video,'loadeddata');
   }
@@ -54,7 +58,7 @@
     var old=active;active=standby;standby=old;
     resetSlot(standby);
   }
-  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.load();slot.name=null; }
+  function resetSlot(slot) { if(slot.frameCallback!==null&&slot.video.cancelVideoFrameCallback)slot.video.cancelVideoFrameCallback(slot.frameCallback);slot.frameCallback=null;slot.onCleanFrame=null;slot.video.onended=null;slot.video.ontimeupdate=null;slot.video.onerror=null;slot.root.classList.remove('is-active');slot.video.pause();slot.video.removeAttribute('src');slot.video.removeAttribute('data-clip');slot.video.load();slot.name=null; }
   function primeAndSwap(name) { resetSlot(standby);return prime(standby,name).then(swapToStandby); }
 
   function getAudioContext(){if(!audioContext){var C=window.AudioContext||window.webkitAudioContext;if(C)audioContext=new C();}if(audioContext&&audioContext.state==='suspended')audioContext.resume();return audioContext;}
@@ -98,7 +102,7 @@
       function complete(){
         if(finished)return;
         finished=true;cleanup();
-        if(name==='flightAway'){busy=false;resolve(name);return;}
+        if(name==='flightAway'||name==='flightReturn'){slot.video.pause();busy=false;resolve(name);return;}
         seekToIdleFrame(slot).then(function(){busy=false;resolve(name);}).catch(function(error){busy=false;reject(error);});
       }
       function holdCleanAwayFrame(){
@@ -151,18 +155,19 @@
     var chosen=name==='flight'?'flightAway':name;
     if(!clipEnabled(chosen)){announce('Disabled clip: '+chosen);return;}
     clearTimeout(actionTimer);var token=++generation;
-    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS[BEHAVIOURS.length-1];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
+    primeAndSwap(chosen).then(function(){if(token!==generation)return;return playActive();}).then(function(){if(token!==generation)return;if(name==='flight'){var flight=BEHAVIOURS.filter(function(item){return item.name==='flight';})[0];scheduleDue(flight);runFlightReturn(token,{behaviour:flight});}else runNormalLoop();}).catch(function(error){if(token!==generation)return;resetSlot(standby);scheduleRetry(error,token);});
   }
 
   function unlock(){if(!soundUnlocked){soundUnlocked=true;getAudioContext();gate.classList.add('is-hidden');}else if(audioContext&&audioContext.state==='suspended')audioContext.resume();requestWakeLock();}
   function buildDebug(){if(debugBuilt)return;debugBuilt=true;panel.hidden=false;portrait.classList.add('debug-enabled');var box=document.getElementById('debugButtons');DEBUG_ACTIONS.forEach(function(item){var b=document.createElement('button'),chosen=item[0]==='flight'?'flightAway':item[0];b.type='button';b.textContent=item[1];b.setAttribute('data-action',item[0]);if(!clipEnabled(chosen)){b.disabled=true;b.textContent+=' (disabled)';}box.appendChild(b);});panel.addEventListener('click',function(e){var action=e.target.getAttribute('data-action');if(!action)return;if(action==='fullscreen'){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();return;}unlock();force(action);});}
   function debugRequested(){return CONFIG.debug||/(?:^|[?&])debug=(?:1|true)(?:&|$)/i.test(location.search);}
   function setState(state){portrait.setAttribute('data-state',state);}
+  function applyMuseumFinish(){portrait.classList.toggle('museum-finish-disabled',!CONFIG.museumFinishEnabled);portrait.style.setProperty('--museum-glaze-opacity',CONFIG.museumGlazeOpacity);portrait.style.setProperty('--museum-vignette-opacity',CONFIG.museumVignetteOpacity);}
 
   gate.addEventListener('click',unlock);
   document.addEventListener('keydown',function(e){if(e.key==='Enter')unlock();if(e.key==='d'||e.key==='D'){if(!debugBuilt)buildDebug();else panel.hidden=!panel.hidden;}});
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&soundUnlocked)requestWakeLock();});
-  if(debugRequested())buildDebug();
+  applyMuseumFinish();if(debugRequested())buildDebug();
   BEHAVIOURS.forEach(scheduleDue);setState('ACTIVE');runNormalLoop();
   window.HauntedPortrait={trigger:force,setState:setState,clips:CONFIG.videoFiles};
 }());
